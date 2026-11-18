@@ -1,5 +1,7 @@
 package com.khachsan.quanlykhachsan.service;
 
+import com.khachsan.quanlykhachsan.dto.request.ServiceUsageRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import com.khachsan.quanlykhachsan.entity.invoice.ServiceUsage;
@@ -28,6 +30,33 @@ public class ServiceUsageService {
     public void xoa(String maSddv) {
         layChiTiet(maSddv);
         repo.deleteById(maSddv);
+    }
+    
+    public ServiceUsage them(ServiceUsageRequest req) {
+        Long max = repo.layMaSoLonNhat();
+        ServiceUsage s = new ServiceUsage();
+        s.setMaSddv(String.format("SD%02d", (max == null ? 0 : max) + 1));
+        s.setMaThue(req.getMaThue());
+        s.setMaDichVu(req.getMaDichVu());
+        s.setSoLuong(req.getSoLuong());
+        s.setNgaySuDung(req.getNgaySuDung());
+        return luu(s);
+    }
+
+    public ServiceUsage sua(String maSddv, ServiceUsageRequest req) {
+        ServiceUsage s = layChiTiet(maSddv);
+        s.setMaDichVu(req.getMaDichVu());
+        s.setSoLuong(req.getSoLuong());
+        s.setNgaySuDung(req.getNgaySuDung());
+        return luu(s);
+    }
+
+    private ServiceUsage luu(ServiceUsage s) {
+        try {
+            return repo.saveAndFlush(s);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã thuê hoặc mã dịch vụ không tồn tại");
+        }
     }
 }
 
