@@ -4,6 +4,9 @@ import com.khachsan.quanlykhachsan.dto.response.InvoiceDetailResponse;
 import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
 import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
 import com.khachsan.quanlykhachsan.service.InvoiceService;
+import com.khachsan.quanlykhachsan.dto.request.InvoiceRequest;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -29,5 +32,11 @@ public class InvoiceController {
     @GetMapping("/{maHoaDon}")
     public InvoiceDetailResponse layChiTiet(@PathVariable String maHoaDon) {
         return service.layChiTiet(maHoaDon);
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public InvoiceDetailResponse them(@Valid @RequestBody InvoiceRequest req) {
+        return service.them(req);
     }
 }

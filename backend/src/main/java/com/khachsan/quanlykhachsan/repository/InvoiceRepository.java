@@ -39,4 +39,7 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String> {
     List<Invoice> timKiem(@Param("maHoaDon") String maHoaDon,
                         @Param("maKhachHang") String maKhachHang,
                         @Param("ngayLap") String ngayLap);
+
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(MaHoaDon, 3) AS SIGNED)) FROM HoaDon", nativeQuery = true)
+    Long layMaSoLonNhat();
 }

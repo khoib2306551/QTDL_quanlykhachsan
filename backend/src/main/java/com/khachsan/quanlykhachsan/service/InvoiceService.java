@@ -6,6 +6,9 @@ import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
 import com.khachsan.quanlykhachsan.entity.invoice.ServiceUsage;
 import com.khachsan.quanlykhachsan.repository.InvoiceRepository;
 import com.khachsan.quanlykhachsan.repository.ServiceUsageRepository;
+import com.khachsan.quanlykhachsan.dto.request.InvoiceRequest;
+import org.springframework.dao.DataIntegrityViolationException;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -47,5 +50,24 @@ public class InvoiceService {
         }
         return new InvoiceDetailResponse(hd.getMaHoaDon(), hd.getMaSddv(), maThue,
                 hd.getNgayLapHoaDon(), hd.getTongTien(), dsDichVu);
+    }
+
+    public InvoiceDetailResponse them(InvoiceRequest req) {
+        ServiceUsage sd = usageRepo.findById(req.getMaSddv()).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã SDDV không tồn tại: " + req.getMaSddv()));
+
+        Long max = repo.layMaSoLonNhat();
+        Invoice hd = new Invoice();
+        hd.setMaHoaDon(String.format("HD%02d", (max == null ? 0 : max) + 1));
+        hd.setMaSddv(req.getMaSddv());
+        hd.setNgayLapHoaDon(req.getNgayLapHoaDon() != null ? req.getNgayLapHoaDon() : LocalDate.now());
+        hd.setTongTien(tinhTongTien(sd.getMaThue()).tongTien());
+
+        try {
+            repo.saveAndFlush(hd);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu hóa đơn không hợp lệ");
+        }
+        return layChiTiet(hd.getMaHoaDon());
     }
 }
