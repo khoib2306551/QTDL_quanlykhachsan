@@ -1,11 +1,12 @@
 package com.khachsan.quanlykhachsan.controller;
 
-import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
-import java.util.List;
+import com.khachsan.quanlykhachsan.dto.response.InvoiceDetailResponse;
 import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
+import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
 import com.khachsan.quanlykhachsan.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/hoa-don")
@@ -23,5 +24,10 @@ public class InvoiceController {
                                 @RequestParam(defaultValue = "") String maKhachHang,
                                 @RequestParam(defaultValue = "") String ngayLap) {
         return service.timKiem(maHoaDon, maKhachHang, ngayLap);
+    }
+
+    @GetMapping("/{maHoaDon}")
+    public InvoiceDetailResponse layChiTiet(@PathVariable String maHoaDon) {
+        return service.layChiTiet(maHoaDon);
     }
 }
