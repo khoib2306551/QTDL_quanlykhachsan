@@ -1,5 +1,7 @@
 package com.khachsan.quanlykhachsan.service;
 
+import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
+import java.util.List;
 import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
 import com.khachsan.quanlykhachsan.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,5 +22,9 @@ public class InvoiceService {
         }
         BigDecimal tienDichVu = repo.tinhTienDichVu(maThue);
         return new TongTienResponse(maThue, tienPhong, tienDichVu, tienPhong.add(tienDichVu));
+    }
+
+    public List<Invoice> timKiem(String maHoaDon, String maKhachHang, String ngayLap) {
+        return repo.timKiem(maHoaDon.trim(), maKhachHang.trim(), ngayLap.trim());
     }
 }
