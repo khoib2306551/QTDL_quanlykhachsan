@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface NhanVienRepository extends JpaRepository<NhanVien,String> {
     Optional<NhanVien> getByTaiKhoan(String taiKhoan);
+
+    boolean existsByTaiKhoan(String taiKhoan);
 }
