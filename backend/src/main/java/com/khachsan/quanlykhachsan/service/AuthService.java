@@ -39,28 +39,8 @@ public class AuthService {
         if(!request.getMatKhau().equals(request.getXacNhanMk())){
             throw new AuthException("Confirm password not correct");
         }
-        if(this.nhanVienService.existsByTaiKhoan(request.getTaiKhoan())){
-            throw new AuthException("Tên đăng nhập đã tồn tại ");
-        }
-        String shortUuid = UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
-
-        NhanVien nhanVien = NhanVien.builder()
-                .maNhanVien(shortUuid)
-                .taiKhoan(request.getTaiKhoan())
-                .matKhau(passwordEncoder.encode(request.getMatKhau()))
-                .hoTen(request.getHoTen())
-                .ngaySinh(request.getNgaySinh())
-                .soDienThoai(request.getSoDienThoai())
-                .build();
-
-        if(request.getNgaySinh()!=null){
-            nhanVien.setNgaySinh(request.getNgaySinh());
-        }
-        if(request.getSoDienThoai()!=null){
-            nhanVien.setSoDienThoai(request.getSoDienThoai());
-        }
-       NhanVien saved = this.nhanVienService.save(nhanVien);
-        String token = this.jwtUtil.generateAccessToken(saved.getMaNhanVien());
+       NhanVien saved = this.nhanVienService.createNhanVien(request.getHoTen(),request.getTaiKhoan(),request.getMatKhau(),request.getNgaySinh(), request.getSoDienThoai());
+        String token = this.jwtUtil.generateAccessToken(saved.getTaiKhoan());
         return AuthResponse.builder()
                 .userInfo(UserInfo.builder()
                         .maNhanVien(saved.getMaNhanVien())
@@ -87,7 +67,7 @@ public class AuthService {
             throw new AuthException("Tài khoản hoặc mật khẩu không chính xác");
         }
         CustomUserDetail userDetail  = (CustomUserDetail)authentication.getPrincipal();
-        String token = this.jwtUtil.generateAccessToken(userDetail.getId());
+        String token = this.jwtUtil.generateAccessToken(userDetail.getUsername());
         return AuthResponse.builder()
                 .userInfo(UserInfo.builder()
                         .maNhanVien(userDetail.getId())
@@ -98,4 +78,6 @@ public class AuthService {
                 .token(token)
                 .build();
     }
+
+
 }

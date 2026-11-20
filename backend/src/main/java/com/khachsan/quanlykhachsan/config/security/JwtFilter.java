@@ -29,6 +29,8 @@ public class JwtFilter extends OncePerRequestFilter {
         try {
             String jwt = parseJwt(request);
             log.info(">>>LOG JWT FILTER");
+            String authHeader = request.getHeader("Authorization");
+            System.out.println("DEBUG Header: " + authHeader);
             if (jwt != null) {
                 String username = jwtUtil.extractUsername(jwt);
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -47,7 +49,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception e) {
-            log.debug("Cannot set user authentication: {}", e.getMessage());
+            log.error(">>> LỖI TRONG JWT FILTER: ", e);
         }
 
         filterChain.doFilter(request, response);
