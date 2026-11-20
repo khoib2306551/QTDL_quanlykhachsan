@@ -14,6 +14,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserInfo {
+    private String taiKhoan;
     private String maNhanVien;
     private String hoTen;
     private String soDienThoai;
@@ -27,6 +28,7 @@ public class UserInfo {
                 .hoTen(nv.getHoTen())
                 .soDienThoai(nv.getSoDienThoai())
                 .ngaySinh(nv.getNgaySinh())
+                .taiKhoan(nv.getTaiKhoan())
                 .build();
     }
 }

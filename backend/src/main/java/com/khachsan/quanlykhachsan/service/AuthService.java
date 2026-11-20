@@ -43,6 +43,7 @@ public class AuthService {
         String token = this.jwtUtil.generateAccessToken(saved.getTaiKhoan());
         return AuthResponse.builder()
                 .userInfo(UserInfo.builder()
+                        .taiKhoan(saved.getTaiKhoan())
                         .maNhanVien(saved.getMaNhanVien())
                         .hoTen(saved.getHoTen())
                         .soDienThoai(saved.getSoDienThoai())
@@ -70,6 +71,7 @@ public class AuthService {
         String token = this.jwtUtil.generateAccessToken(userDetail.getUsername());
         return AuthResponse.builder()
                 .userInfo(UserInfo.builder()
+                        .taiKhoan(userDetail.getUsername())
                         .maNhanVien(userDetail.getId())
                         .hoTen(userDetail.getFullName())
                         .soDienThoai(userDetail.getPhone())
