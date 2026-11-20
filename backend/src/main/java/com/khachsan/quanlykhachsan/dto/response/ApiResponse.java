@@ -2,8 +2,10 @@ package com.khachsan.quanlykhachsan.dto.response;
 
 
 import lombok.Builder;
+import lombok.Getter;
 
 @Builder
+@Getter
 public class ApiResponse <T>{
     private String status;
     private T data;

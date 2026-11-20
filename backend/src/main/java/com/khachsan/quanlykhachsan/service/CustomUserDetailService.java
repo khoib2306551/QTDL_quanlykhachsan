@@ -16,7 +16,7 @@ public class CustomUserDetailService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String tk) throws UsernameNotFoundException {
-        NhanVien nhanVien = this.nhanVienService.getByTaiKhoan(tk);
+        NhanVien nhanVien = this.nhanVienService.getForAuth(tk).orElseThrow(() -> new UsernameNotFoundException("Tài khoản hoặc mật khẩu không chính xác"));
         return new CustomUserDetail(nhanVien);
     }
 }
