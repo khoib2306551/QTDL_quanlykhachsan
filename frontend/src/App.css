@@ -2,6 +2,12 @@
 
 @layer base {
 
+  .btn:disabled,
+.btn:disabled:hover {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
