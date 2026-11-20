@@ -11,7 +11,10 @@ export default function AdminLayout() {
         <div className="top-bar-links">
           <button onClick={() => navigate('/nhan-vien')}>Tài khoản</button>
           <button onClick={() => navigate(-1)}>Trở về</button>
-          <button onClick={() => navigate('/dang-nhap')}>Thoát</button>
+          <button onClick={() => {
+             localStorage.removeItem("token");
+            localStorage.removeItem("userInfo");
+            navigate('/dang-nhap')}}>Thoát</button>
         </div>
         <div className="top-bar-title">HỆ THỐNG QUẢN LÝ KHÁCH SẠN</div>
         <div>Admin</div>
