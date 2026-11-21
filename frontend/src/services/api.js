@@ -37,14 +37,14 @@ export const tv1Api = {
   // Loại phòng
   layDSLoaiPhong: ( size = 10, page = 1) => apiClient.get('/loai-phong',{params:{size, page}}),
   themLoaiPhong: (data) => apiClient.post('/loai-phong', data),
-  suaLoaiPhong: (maLoai, data) => apiClient.put(`/loai-phong/${maLoai}`, data),
+  suaLoaiPhong: (maLoai, data) => apiClient.patch(`/loai-phong/${maLoai}`, data),
   xoaLoaiPhong: (maLoai) => apiClient.delete(`/loai-phong/${maLoai}`),
 
   // Phòng
   layDSPhong:( size = 10, page = 1) => apiClient.get('/phong',{params:{size, page}}),
   chiTietPhong: (maPhong) => apiClient.get(`/phong/${maPhong}`),
   themPhong: (data) => apiClient.post('/phong', data),
-  suaPhong: (maPhong, data) => apiClient.put(`/phong/${maPhong}`, data),
+  suaPhong: (maPhong, data) => apiClient.patch(`/phong/${maPhong}`, data),
   xoaPhong: (maPhong) => apiClient.delete(`/phong/${maPhong}`),
 };
 

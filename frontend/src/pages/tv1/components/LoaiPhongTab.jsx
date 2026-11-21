@@ -6,7 +6,7 @@ import ConfirmDeleteModal from './ConfirmDeleteModal';
 const INITIAL_FORM = {
   maLoai: '',
   tenLoai: '',
-  donGia: '',
+  giaPhong: '',
   moTa: '',
 };
 
@@ -66,7 +66,7 @@ export default function LoaiPhongTab({ onError, onDataChanged }) {
     setFormData({
       maLoai: item.maLoai || '',
       tenLoai: item.tenLoai || '',
-      donGia: item.donGia ?? item.giaPhong ?? '',
+      giaPhong: item.giaPhong ?? item.giaPhong ?? '',
       moTa: item.moTa || '',
     });
   };
@@ -81,7 +81,7 @@ export default function LoaiPhongTab({ onError, onDataChanged }) {
     e.preventDefault();
     setNotice({ type: '', text: '' });
 
-    if (!formData.tenLoai.trim() || formData.donGia === '') {
+    if (!formData.tenLoai.trim() || formData.giaPhong === '') {
       setNotice({ type: 'error', text: 'Vui lòng nhập Tên loại phòng và Đơn giá.' });
       return;
     }
@@ -90,7 +90,7 @@ export default function LoaiPhongTab({ onError, onDataChanged }) {
     try {
       const payload = {
         tenLoai: formData.tenLoai.trim(),
-        donGia: Number(formData.donGia),
+        giaPhong: Number(formData.giaPhong),
         moTa: formData.moTa.trim() || null,
       };
       await tv1Api.themLoaiPhong(payload);
@@ -109,7 +109,7 @@ export default function LoaiPhongTab({ onError, onDataChanged }) {
     if (!isEditing || !formData.maLoai) return;
     setNotice({ type: '', text: '' });
 
-    if (!formData.tenLoai.trim() || formData.donGia === '') {
+    if (!formData.tenLoai.trim() || formData.giaPhong === '') {
       setNotice({ type: 'error', text: 'Tên loại phòng và Đơn giá không được để trống.' });
       return;
     }
@@ -118,7 +118,7 @@ export default function LoaiPhongTab({ onError, onDataChanged }) {
     try {
       const payload = {
         tenLoai: formData.tenLoai.trim(),
-        donGia: Number(formData.donGia),
+        giaPhong: Number(formData.giaPhong),
         moTa: formData.moTa.trim() || null,
       };
       await tv1Api.suaLoaiPhong(formData.maLoai, payload);
@@ -204,10 +204,10 @@ export default function LoaiPhongTab({ onError, onDataChanged }) {
                 <label>Đơn giá (VNĐ) (*):</label>
                 <input
                   type="number"
-                  name="donGia"
+                  name="giaPhong"
                   min="0"
                   step="1000"
-                  value={formData.donGia}
+                  value={formData.giaPhong}
                   onChange={handleChange}
                   placeholder="VD: 500000"
                 />
@@ -294,7 +294,7 @@ export default function LoaiPhongTab({ onError, onDataChanged }) {
               ) : (
                 list.map((item) => {
                   const isSelected = isEditing && formData.maLoai === item.maLoai;
-                  const price = item.donGia ?? item.giaPhong ?? 0;
+                  const price = item.giaPhong ?? item.giaPhong ?? 0;
                   return (
                     <tr
                       key={item.maLoai}

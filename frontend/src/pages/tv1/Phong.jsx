@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BedDouble, Layers } from 'lucide-react';
 import { tv1Api } from '../../services/api';
-// import PhongTab from './components/PhongTab';
+import PhongTab from './components/PhongTab';
 import LoaiPhongTab from './components/LoaiPhongTab';
 
 export default function PhongPage() {
@@ -71,11 +71,11 @@ export default function PhongPage() {
         </button>
       </div>
 
-      {/* {activeTab === 'phong' ? (
+      {activeTab === 'phong' ? (
         <PhongTab loaiPhongList={loaiPhongList} onError={handleApiError} />
       ) : (
         <LoaiPhongTab onError={handleApiError} onDataChanged={loadAllLoaiPhong} />
-      )} */}
+      )}
     </div>
   );
 }
