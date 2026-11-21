@@ -42,4 +42,6 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String> {
 
     @Query(value = "SELECT MAX(CAST(SUBSTRING(MaHoaDon, 3) AS SIGNED)) FROM HoaDon", nativeQuery = true)
     Long layMaSoLonNhat();
+
+    boolean existsByMaSddv(String maSddv);
 }

@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 import com.khachsan.quanlykhachsan.entity.invoice.ServiceUsage;
 import com.khachsan.quanlykhachsan.repository.ServiceUsageRepository;
+import com.khachsan.quanlykhachsan.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ServiceUsageService {
     private final ServiceUsageRepository repo;
+    private final InvoiceRepository invoiceRepo;
 
     public List<ServiceUsage> layDanhSach(String maThue) {
         if (maThue == null || maThue.isBlank()) {
@@ -29,6 +31,9 @@ public class ServiceUsageService {
 
     public void xoa(String maSddv) {
         layChiTiet(maSddv);
+        if (invoiceRepo.existsByMaSddv(maSddv)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "SDDV " + maSddv + " đang gắn với một hóa đơn");
+        }
         repo.deleteById(maSddv);
     }
     
