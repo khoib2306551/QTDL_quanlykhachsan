@@ -1,9 +1,9 @@
 package com.khachsan.quanlykhachsan.controller;
 
-import com.khachsan.quanlykhachsan.dto.request.LoginRequest;
-import com.khachsan.quanlykhachsan.dto.request.RegisterRequest;
+import com.khachsan.quanlykhachsan.dto.request.auth.LoginRequest;
+import com.khachsan.quanlykhachsan.dto.request.auth.RegisterRequest;
 import com.khachsan.quanlykhachsan.dto.response.ApiResponse;
-import com.khachsan.quanlykhachsan.dto.response.AuthResponse;
+import com.khachsan.quanlykhachsan.dto.response.auth.AuthResponse;
 import com.khachsan.quanlykhachsan.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

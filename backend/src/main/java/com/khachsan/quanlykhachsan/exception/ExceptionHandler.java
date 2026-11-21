@@ -23,6 +23,10 @@ public class ExceptionHandler {
     public ResponseEntity<ApiResponse<?>> authExceptionHandle(AuthenticationException ex){
         return new ResponseEntity<>(ApiResponse.error("error", ex.getMessage()),HttpStatus.UNAUTHORIZED);
     }
+    @org.springframework.web.bind.annotation.ExceptionHandler(MissingParamException.class)
+    public ResponseEntity<ApiResponse<?>> authMissingParamHandle(MissingParamException ex){
+        return new ResponseEntity<>(ApiResponse.error("error", ex.getMessage()),HttpStatus.BAD_REQUEST);
+    }
 
 
 

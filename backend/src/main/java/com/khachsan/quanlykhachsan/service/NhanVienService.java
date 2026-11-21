@@ -2,7 +2,7 @@ package com.khachsan.quanlykhachsan.service;
 
 import com.khachsan.quanlykhachsan.dto.PageResponse;
 import com.khachsan.quanlykhachsan.dto.request.NhanVienRequest;
-import com.khachsan.quanlykhachsan.dto.response.UserInfo;
+import com.khachsan.quanlykhachsan.dto.response.auth.UserInfo;
 import com.khachsan.quanlykhachsan.entity.NhanVien;
 import com.khachsan.quanlykhachsan.exception.AuthException;
 import com.khachsan.quanlykhachsan.exception.ResourceNotFoundException;
