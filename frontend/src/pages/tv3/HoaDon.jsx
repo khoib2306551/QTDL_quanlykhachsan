@@ -10,6 +10,7 @@ export default function HoaDonPage() {
   const [chon, setChon] = useState(null);
   const [sd, setSd] = useState(SDDV_RONG);
   const [thongBao, setThongBao] = useState('');
+  const [tien, setTien] = useState(null);
 
   const taiDSHoaDon = async (params = TIM_RONG) => {
     try {
@@ -20,10 +21,30 @@ export default function HoaDonPage() {
     }
   };
 
+  const taiTien = async (maThue) => {
+    try {
+      const res = await tv3Api.tinhTongTien(maThue);
+      setTien(res.data);
+    } catch (e) {
+      setTien(null);
+    }
+  };
+
+  const tinhLaiVaTai = async () => {
+    await tv3Api.suaHoaDon(chon.maHoaDon, { maSddv: chon.maSddv });
+    await chonHoaDon(chon.maHoaDon);
+    await taiDSHoaDon(tim);
+  };
+
   const chonHoaDon = async (maHoaDon) => {
     try {
       const res = await tv3Api.chiTietHoaDon(maHoaDon);
       setChon(res.data);
+      if (res.data.maThue) {
+        taiTien(res.data.maThue);
+      } else {
+        setTien(null);
+      }
       setSd(SDDV_RONG);
       setThongBao('');
     } catch (e) {
@@ -49,7 +70,7 @@ export default function HoaDonPage() {
   const themSd = async () => {
     try {
       await tv3Api.themSDDV(duLieuSd());
-      await chonHoaDon(chon.maHoaDon);
+      await tinhLaiVaTai();
       setThongBao('Đã thêm dịch vụ');
     } catch (e) {
       setThongBao('Không thêm được: kiểm tra mã dịch vụ, số lượng và ngày sử dụng');
@@ -63,7 +84,7 @@ export default function HoaDonPage() {
     }
     try {
       await tv3Api.suaSDDV(sd.maSddv, duLieuSd());
-      await chonHoaDon(chon.maHoaDon);
+      await tinhLaiVaTai();
       setThongBao('Đã sửa dịch vụ');
     } catch (e) {
       setThongBao('Không sửa được: kiểm tra mã dịch vụ, số lượng và ngày sử dụng');
@@ -78,7 +99,7 @@ export default function HoaDonPage() {
     if (!window.confirm(`Xóa dòng dịch vụ ${sd.maSddv}?`)) return;
     try {
       await tv3Api.xoaSDDV(sd.maSddv);
-      await chonHoaDon(chon.maHoaDon);
+      await tinhLaiVaTai();
       setThongBao('Đã xóa dịch vụ');
     } catch (e) {
       setThongBao(
@@ -150,7 +171,14 @@ export default function HoaDonPage() {
         {thongBao && <p><b>{thongBao}</b></p>}
         {!chon && <p>Bấm vào một hóa đơn để xem các dịch vụ đã sử dụng.</p>}
         {chon && !chon.maThue && <p>Hóa đơn này chưa gắn với phiếu thuê nào.</p>}
-
+        {tien && chon?.maThue && (
+          <p>
+            Tiền phòng: <b>{Number(tien.tienPhong).toLocaleString('vi-VN')}</b>
+            {' | '}Tiền dịch vụ: <b>{Number(tien.tienDichVu).toLocaleString('vi-VN')}</b>
+            {' | '}Tổng: <b>{Number(tien.tongTien).toLocaleString('vi-VN')}</b>
+            {Number(tien.tongTien) !== Number(chon.tongTien) && ' (khác tổng đã lưu, bấm Cập nhật tổng tiền)'}
+          </p>
+        )}
         {chon?.maThue && (
           <>
             <div className="form-row">
@@ -174,6 +202,19 @@ export default function HoaDonPage() {
               <button className="btn btn-warning" onClick={suaSd}>Sửa</button>
               <button className="btn btn-danger" onClick={xoaSd}>Xóa</button>
               <button className="btn btn-secondary" onClick={() => setSd(SDDV_RONG)}>Làm mới</button>
+              <button
+                className="btn"
+                onClick={async () => {
+                  try {
+                    await tinhLaiVaTai();
+                    setThongBao('Đã cập nhật tổng tiền hóa đơn');
+                  } catch (e) {
+                    setThongBao('Không cập nhật được tổng tiền');
+                  }
+                }}
+              >
+                Cập nhật tổng tiền
+              </button>
             </div>
 
             <div className="data-table-wrapper" style={{ marginTop: 12 }}>
