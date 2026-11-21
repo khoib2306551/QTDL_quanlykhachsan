@@ -3,6 +3,7 @@ import { tv3Api } from '../../services/api';
 
 const TIM_RONG = { maHoaDon: '', maKhachHang: '', ngayLap: '' };
 const SDDV_RONG = { maSddv: '', maDichVu: '', soLuong: 1, ngaySuDung: '' };
+const HD_RONG = { maHoaDon: '', maSddv: '', ngayLapHoaDon: '' };
 
 export default function HoaDonPage() {
   const [dsHoaDon, setDsHoaDon] = useState([]);
@@ -11,6 +12,8 @@ export default function HoaDonPage() {
   const [sd, setSd] = useState(SDDV_RONG);
   const [thongBao, setThongBao] = useState('');
   const [tien, setTien] = useState(null);
+  const [hd, setHd] = useState(HD_RONG);
+  const [tbHd, setTbHd] = useState('');
 
   const taiDSHoaDon = async (params = TIM_RONG) => {
     try {
@@ -40,6 +43,12 @@ export default function HoaDonPage() {
     try {
       const res = await tv3Api.chiTietHoaDon(maHoaDon);
       setChon(res.data);
+      setHd({
+        maHoaDon: res.data.maHoaDon,
+        maSddv: res.data.maSddv || '',
+        ngayLapHoaDon: res.data.ngayLapHoaDon || '',
+      });
+      setTbHd('');
       if (res.data.maThue) {
         taiTien(res.data.maThue);
       } else {
@@ -54,6 +63,57 @@ export default function HoaDonPage() {
 
   const doiO = (e) => setTim({ ...tim, [e.target.name]: e.target.value });
   const doiSd = (e) => setSd({ ...sd, [e.target.name]: e.target.value });
+  const doiHd = (e) => setHd({ ...hd, [e.target.name]: e.target.value });
+
+  const duLieuHd = () => ({
+    maSddv: hd.maSddv.trim(),
+    ngayLapHoaDon: hd.ngayLapHoaDon || null,
+  });
+
+  const themHd = async () => {
+    try {
+      const res = await tv3Api.themHoaDon(duLieuHd());
+      await taiDSHoaDon(tim);
+      await chonHoaDon(res.data.maHoaDon);
+      setTbHd(`Đã tạo hóa đơn ${res.data.maHoaDon}`);
+    } catch (e) {
+      setTbHd('Không tạo được: mã SDDV phải tồn tại');
+    }
+  };
+
+  const suaHd = async () => {
+    if (!hd.maHoaDon) {
+      setTbHd('Bấm vào một hóa đơn để sửa');
+      return;
+    }
+    try {
+      await tv3Api.suaHoaDon(hd.maHoaDon, duLieuHd());
+      await taiDSHoaDon(tim);
+      await chonHoaDon(hd.maHoaDon);
+      setTbHd('Đã sửa hóa đơn');
+    } catch (e) {
+      setTbHd('Không sửa được: mã SDDV phải tồn tại');
+    }
+  };
+
+  const xoaHd = async () => {
+    if (!hd.maHoaDon) {
+      setTbHd('Bấm vào một hóa đơn để xóa');
+      return;
+    }
+    if (!window.confirm(`Xóa hóa đơn ${hd.maHoaDon}?`)) return;
+    try {
+      await tv3Api.xoaHoaDon(hd.maHoaDon);
+      setChon(null);
+      setTien(null);
+      setHd(HD_RONG);
+      setSd(SDDV_RONG);
+      await taiDSHoaDon(tim);
+      setTbHd('Đã xóa hóa đơn');
+    } catch (e) {
+      setTbHd('Không xóa được hóa đơn');
+    }
+  };
 
   const lamMoi = () => {
     setTim(TIM_RONG);
@@ -135,7 +195,35 @@ export default function HoaDonPage() {
           <button className="btn" onClick={() => taiDSHoaDon(tim)}>Tìm kiếm</button>
           <button className="btn btn-secondary" onClick={lamMoi}>Làm mới</button>
         </div>
-
+        <div className="card-title" style={{ marginTop: 16 }}>Thông tin hóa đơn</div>
+        {tbHd && <p><b>{tbHd}</b></p>}
+        <div className="form-row">
+          <label>Mã hóa đơn</label>
+          <input value={hd.maHoaDon} readOnly placeholder="Tự sinh khi tạo" />
+        </div>
+        <div className="form-row">
+          <label>Mã SDDV</label>
+          <input name="maSddv" value={hd.maSddv} onChange={doiHd} />
+        </div>
+        <div className="form-row">
+          <label>Ngày lập</label>
+          <input type="date" name="ngayLapHoaDon" value={hd.ngayLapHoaDon} onChange={doiHd} />
+        </div>
+        <div className="btn-group">
+          <button className="btn" onClick={themHd}>Thêm</button>
+          <button className="btn btn-warning" onClick={suaHd}>Sửa</button>
+          <button className="btn btn-danger" onClick={xoaHd}>Xóa</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setHd(HD_RONG);
+              setChon(null);
+              setTien(null);
+            }}
+          >
+            Nhập mới
+          </button>
+        </div>
         <div className="data-table-wrapper" style={{ marginTop: 12 }}>
           <table className="data-table">
             <thead>
