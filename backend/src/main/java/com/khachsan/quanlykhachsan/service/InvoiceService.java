@@ -7,6 +7,7 @@ import com.khachsan.quanlykhachsan.entity.invoice.ServiceUsage;
 import com.khachsan.quanlykhachsan.repository.InvoiceRepository;
 import com.khachsan.quanlykhachsan.repository.ServiceUsageRepository;
 import com.khachsan.quanlykhachsan.dto.request.InvoiceRequest;
+import com.khachsan.quanlykhachsan.dto.request.InvoiceUpdateRequest;
 import org.springframework.dao.DataIntegrityViolationException;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -69,5 +70,32 @@ public class InvoiceService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu hóa đơn không hợp lệ");
         }
         return layChiTiet(hd.getMaHoaDon());
+    }
+
+    public InvoiceDetailResponse sua(String maHoaDon, InvoiceUpdateRequest req) {
+        Invoice hd = repo.findById(maHoaDon).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hóa đơn " + maHoaDon));
+
+        if (req.getNgayLapHoaDon() != null) {
+            hd.setNgayLapHoaDon(req.getNgayLapHoaDon());
+        }
+        if (req.getMaSddv() != null && !req.getMaSddv().isBlank()) {
+            ServiceUsage sd = usageRepo.findById(req.getMaSddv()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã SDDV không tồn tại: " + req.getMaSddv()));
+            hd.setMaSddv(req.getMaSddv());
+            hd.setTongTien(tinhTongTien(sd.getMaThue()).tongTien());
+        }
+        if (req.getTongTien() != null) {
+            hd.setTongTien(req.getTongTien());
+        }
+        repo.saveAndFlush(hd);
+        return layChiTiet(maHoaDon);
+    }
+
+    public void xoa(String maHoaDon) {
+        if (!repo.existsById(maHoaDon)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hóa đơn " + maHoaDon);
+        }
+        repo.deleteById(maHoaDon);
     }
 }

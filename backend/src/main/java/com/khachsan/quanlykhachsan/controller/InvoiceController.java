@@ -5,6 +5,7 @@ import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
 import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
 import com.khachsan.quanlykhachsan.service.InvoiceService;
 import com.khachsan.quanlykhachsan.dto.request.InvoiceRequest;
+import com.khachsan.quanlykhachsan.dto.request.InvoiceUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import lombok.RequiredArgsConstructor;
@@ -38,5 +39,16 @@ public class InvoiceController {
     @ResponseStatus(HttpStatus.CREATED)
     public InvoiceDetailResponse them(@Valid @RequestBody InvoiceRequest req) {
         return service.them(req);
+    }
+
+    @PutMapping("/{maHoaDon}")
+    public InvoiceDetailResponse sua(@PathVariable String maHoaDon,
+                                    @Valid @RequestBody InvoiceUpdateRequest req) {
+        return service.sua(maHoaDon, req);
+    }
+
+    @DeleteMapping("/{maHoaDon}")
+    public void xoa(@PathVariable String maHoaDon) {
+        service.xoa(maHoaDon);
     }
 }
