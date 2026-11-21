@@ -27,6 +27,10 @@ public class ExceptionHandler {
     public ResponseEntity<ApiResponse<?>> authMissingParamHandle(MissingParamException ex){
         return new ResponseEntity<>(ApiResponse.error("error", ex.getMessage()),HttpStatus.BAD_REQUEST);
     }
+    @org.springframework.web.bind.annotation.ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<?>> businessExceptionHandle(BusinessException ex){
+        return new ResponseEntity<>(ApiResponse.error("error", ex.getMessage()),HttpStatus.UNPROCESSABLE_CONTENT);
+    }
 
 
 

@@ -22,4 +22,7 @@ public class LoaiPhong {
 
     @Column(name = "GiaPhong", precision = 15, scale = 2, nullable = false)
     private BigDecimal giaPhong;
+
+    @Column(name = "MoTa", length = 500)
+    private String moTa;
 }
