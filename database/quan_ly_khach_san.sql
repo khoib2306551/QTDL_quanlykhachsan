@@ -6,12 +6,6 @@ SET GLOBAL log_bin_trust_function_creators = 1;
 
 
 
-
-
-
-
-
-
 CREATE TABLE LoaiPhong (
     MaLoai VARCHAR(10) PRIMARY KEY,
     TenLoai VARCHAR(100) NOT NULL,
@@ -223,7 +217,7 @@ BEGIN
         FROM HoaDon
         WHERE YEAR(NgayLapHoaDon) = p_Nam
         GROUP BY YEAR(NgayLapHoaDon), MONTH(NgayLapHoaDon)
-        ORDER BY Thang ASC;
+        ORDER BY Thang A	SC;
     END IF;
 END$$
 

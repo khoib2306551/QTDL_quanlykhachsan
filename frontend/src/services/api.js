@@ -8,6 +8,19 @@ const apiClient = axios.create({
 });
 
 
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    console.log(">>TOKEN: ",token);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // XÁC THỰC, NHÂN VIÊN, LOẠI PHÒNG & PHÒNG
 export const tv1Api = {
   // Xác thực
@@ -15,9 +28,10 @@ export const tv1Api = {
   dangKy: (data) => apiClient.post('/auth/dang-ky', data),
 
   // Nhân viên
-  layDSNV: (tuKhoa = '') => apiClient.get('/nhan-vien', { params: { tuKhoa } }),
+  layDSNV: (tuKhoa = '', size = 10, page = 1) => apiClient.get('/nhan-vien', { params: { keyword: tuKhoa, size, page } }),
+  NVDetail:(maNV) =>  apiClient.get(`/nhan-vien/${maNV}`),
   themNV: (data) => apiClient.post('/nhan-vien', data),
-  suaNV: (maNV, data) => apiClient.put(`/nhan-vien/${maNV}`, data),
+  suaNV: (maNV, data) => apiClient.patch(`/nhan-vien/${maNV}`, data),
   xoaNV: (maNV) => apiClient.delete(`/nhan-vien/${maNV}`),
 
   // Loại phòng
