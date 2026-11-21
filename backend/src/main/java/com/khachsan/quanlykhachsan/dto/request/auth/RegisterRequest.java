@@ -1,4 +1,4 @@
-package com.khachsan.quanlykhachsan.dto.request;
+package com.khachsan.quanlykhachsan.dto.request.auth;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;

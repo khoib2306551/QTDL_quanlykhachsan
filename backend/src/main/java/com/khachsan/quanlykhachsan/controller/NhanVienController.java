@@ -4,7 +4,7 @@ import com.khachsan.quanlykhachsan.config.security.CustomUserDetail;
 import com.khachsan.quanlykhachsan.dto.PageResponse;
 import com.khachsan.quanlykhachsan.dto.request.NhanVienRequest;
 import com.khachsan.quanlykhachsan.dto.response.ApiResponse;
-import com.khachsan.quanlykhachsan.dto.response.UserInfo;
+import com.khachsan.quanlykhachsan.dto.response.auth.UserInfo;
 import com.khachsan.quanlykhachsan.service.NhanVienService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

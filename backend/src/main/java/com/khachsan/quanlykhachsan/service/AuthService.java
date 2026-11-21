@@ -2,10 +2,10 @@ package com.khachsan.quanlykhachsan.service;
 
 import com.khachsan.quanlykhachsan.config.security.CustomUserDetail;
 import com.khachsan.quanlykhachsan.config.security.JwtUtil;
-import com.khachsan.quanlykhachsan.dto.request.LoginRequest;
-import com.khachsan.quanlykhachsan.dto.request.RegisterRequest;
-import com.khachsan.quanlykhachsan.dto.response.AuthResponse;
-import com.khachsan.quanlykhachsan.dto.response.UserInfo;
+import com.khachsan.quanlykhachsan.dto.request.auth.LoginRequest;
+import com.khachsan.quanlykhachsan.dto.request.auth.RegisterRequest;
+import com.khachsan.quanlykhachsan.dto.response.auth.AuthResponse;
+import com.khachsan.quanlykhachsan.dto.response.auth.UserInfo;
 import com.khachsan.quanlykhachsan.entity.NhanVien;
 import com.khachsan.quanlykhachsan.exception.AuthException;
 import org.springframework.security.core.AuthenticationException;
@@ -16,8 +16,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.UUID;
 
 @Slf4j
 @Service

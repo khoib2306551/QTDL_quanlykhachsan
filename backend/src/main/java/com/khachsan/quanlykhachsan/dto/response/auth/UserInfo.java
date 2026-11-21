@@ -1,4 +1,4 @@
-package com.khachsan.quanlykhachsan.dto.response;
+package com.khachsan.quanlykhachsan.dto.response.auth;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.khachsan.quanlykhachsan.entity.NhanVien;
