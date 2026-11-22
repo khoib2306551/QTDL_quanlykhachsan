@@ -12,7 +12,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
-    console.log(">>TOKEN: ",token);
+    console.log(">>TOKEN: ",token); 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -35,16 +35,16 @@ export const tv1Api = {
   xoaNV: (maNV) => apiClient.delete(`/nhan-vien/${maNV}`),
 
   // Loại phòng
-  layDSLoaiPhong: () => apiClient.get('/loai-phong'),
+  layDSLoaiPhong: ( size = 10, page = 1) => apiClient.get('/loai-phong',{params:{size, page}}),
   themLoaiPhong: (data) => apiClient.post('/loai-phong', data),
-  suaLoaiPhong: (maLoai, data) => apiClient.put(`/loai-phong/${maLoai}`, data),
+  suaLoaiPhong: (maLoai, data) => apiClient.patch(`/loai-phong/${maLoai}`, data),
   xoaLoaiPhong: (maLoai) => apiClient.delete(`/loai-phong/${maLoai}`),
 
   // Phòng
-  layDSPhong: (params) => apiClient.get('/phong', { params }),
+  layDSPhong:( size = 10, page = 1) => apiClient.get('/phong',{params:{size, page}}),
   chiTietPhong: (maPhong) => apiClient.get(`/phong/${maPhong}`),
   themPhong: (data) => apiClient.post('/phong', data),
-  suaPhong: (maPhong, data) => apiClient.put(`/phong/${maPhong}`, data),
+  suaPhong: (maPhong, data) => apiClient.patch(`/phong/${maPhong}`, data),
   xoaPhong: (maPhong) => apiClient.delete(`/phong/${maPhong}`),
 };
 

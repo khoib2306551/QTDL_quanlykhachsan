@@ -1,4 +1,4 @@
-package com.khachsan.quanlykhachsan.dto.response;
+package com.khachsan.quanlykhachsan.dto.response.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

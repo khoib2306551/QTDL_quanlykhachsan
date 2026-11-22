@@ -1,4 +1,4 @@
-package com.khachsan.quanlykhachsan.dto.request;
+package com.khachsan.quanlykhachsan.dto.request.auth;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
