@@ -9,17 +9,15 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 
-
 @Repository
 public interface ThongKeRepository extends JpaRepository<Invoice, String> {
 
-        @Query(value = "CALL sp_ThongKeDoanhThu(:kieuThongKe, :nam)", nativeQuery = true)
+    @Query(value = "CALL sp_ThongKeDoanhThu(:kieuThongKe, :nam)", nativeQuery = true)
     List<Object[]> thongKeDoanhThu(
             @Param("kieuThongKe") String kieuThongKe,
             @Param("nam") Integer nam
     );
 
-    
     @Query(value = """
             SELECT
                 hd.NgayLapHoaDon AS MocThoiGian,
@@ -39,7 +37,6 @@ public interface ThongKeRepository extends JpaRepository<Invoice, String> {
             @Param("denNgay") LocalDate denNgay
     );
 
-
     @Query(value = """
             SELECT
                 COUNT(hd.MaHoaDon) AS SoLuongHoaDon,
@@ -51,7 +48,7 @@ public interface ThongKeRepository extends JpaRepository<Invoice, String> {
             WHERE hd.NgayLapHoaDon >= :tuNgay
               AND hd.NgayLapHoaDon <= :denNgay
             """, nativeQuery = true)
-    Object[] layChiSoTongHop(
+    List<Object[]> layChiSoTongHop(
             @Param("tuNgay") LocalDate tuNgay,
             @Param("denNgay") LocalDate denNgay
     );
