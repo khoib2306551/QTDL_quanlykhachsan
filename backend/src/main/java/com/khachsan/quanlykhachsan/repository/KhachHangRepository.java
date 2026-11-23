@@ -18,4 +18,8 @@ public interface KhachHangRepository extends JpaRepository<KhachHang, String> {
             "OR LOWER(kh.diaChi) LIKE LOWER(CONCAT('%', :tuKhoa, '%')) " +
             "OR LOWER(kh.soDienThoai) LIKE LOWER(CONCAT('%', :tuKhoa, '%'))")
     List<KhachHang> timKiemKhachHang(@Param("tuKhoa") String tuKhoa);
+
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(MaKhachHang, 3) AS UNSIGNED)) " +
+            "FROM KhachHang WHERE MaKhachHang REGEXP '^KH[0-9]+$'", nativeQuery = true)
+    Long layMaSoLonNhat();
 }

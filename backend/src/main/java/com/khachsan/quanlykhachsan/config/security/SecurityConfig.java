@@ -35,9 +35,9 @@ public class SecurityConfig {
                 csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(this.configurationSource()))
-                .authorizeHttpRequests(request
-                -> request.requestMatchers("/api/auth/**").permitAll()
-                                .anyRequest().authenticated()
+                .authorizeHttpRequests(request -> request
+                        .requestMatchers("/api/auth/**", "/error").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .exceptionHandling(handle -> handle.authenticationEntryPoint(entryPoint))
                 .addFilterBefore(this.jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -64,5 +64,6 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration){
         return configuration.getAuthenticationManager();
     }
+
 
 }

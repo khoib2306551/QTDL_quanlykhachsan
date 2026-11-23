@@ -51,14 +51,16 @@ public class ThuePhongService {
 
     @Transactional
     public ThuePhong taoPhieuThue(ThuePhongRequest req) {
-        if (req.getMaThue() == null || req.getMaThue().trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã thuê phòng không được để trống");
-        }
-        if (thuePhongRepository.existsById(req.getMaThue().trim())) {
-            throw new IllegalArgumentException("Mã thuê phòng " + req.getMaThue() + " đã tồn tại");
-        }
         if (req.getNgayNhan() != null && req.getNgayTra() != null && req.getNgayTra().isBefore(req.getNgayNhan())) {
             throw new IllegalArgumentException("Ngày trả phòng phải lớn hơn hoặc bằng ngày nhận phòng");
+        }
+
+        String maThue = (req.getMaThue() == null || req.getMaThue().trim().isEmpty())
+                ? taoMaThueTuDong()
+                : req.getMaThue().trim();
+
+        if (thuePhongRepository.existsById(maThue)) {
+            throw new IllegalArgumentException("Mã thuê phòng " + maThue + " đã tồn tại");
         }
 
         KhachHang kh = khachHangRepository.findById(req.getMaKhachHang())
@@ -68,7 +70,7 @@ public class ThuePhongService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng mã " + req.getMaPhong()));
 
         ThuePhong tp = ThuePhong.builder()
-                .maThue(req.getMaThue().trim())
+                .maThue(maThue)
                 .khachHang(kh)
                 .phong(phong)
                 .ngayThue(req.getNgayThue() != null ? req.getNgayThue() : LocalDate.now())
@@ -123,6 +125,17 @@ public class ThuePhongService {
             phong.setTrangThai("Trống");
             phongRepository.save(phong);
         }
+    }
+
+    private String taoMaThueTuDong() {
+        Long maxSo = thuePhongRepository.layMaSoLonNhat();
+        long nextSo = (maxSo == null ? 0 : maxSo) + 1;
+        String maMoi = String.format("TP%02d", nextSo);
+        while (thuePhongRepository.existsById(maMoi)) {
+            nextSo++;
+            maMoi = String.format("TP%02d", nextSo);
+        }
+        return maMoi;
     }
 
     private ThuePhongResponse mapRowToResponse(Object[] row) {

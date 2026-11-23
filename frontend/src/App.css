@@ -1,207 +1,322 @@
-
-
 @layer base {
-
   .btn:disabled,
-.btn:disabled:hover {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+  .btn:disabled:hover {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
 
-body, #root {
-  width: 100%;
-  min-height: 100vh;
-  background-color: #f4f6f8;
-  color: #1e293b;
-}
+  body, #root {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #f4f6f8;
+    color: #1e293b;
+  }
 
-/* Khung Layout Quản trị */
-.admin-wrapper {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
+  /* Khung Layout Quản trị */
+  .admin-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
 
-.top-bar {
-  background-color: #26596a;
-  color: #ffffff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  border-bottom: 2px solid #1b4250;
-}
+  /* Header mới */
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    height: 56px;
+    padding: 0 20px;
+    background: linear-gradient(90deg, #1d4857 0%, #26596a 100%);
+    color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+  }
 
-.top-bar-links button {
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  margin-right: 16px;
-  cursor: pointer;
-  font-size: 14px;
-}
+  .top-bar-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    cursor: pointer;
+    user-select: none;
+  }
 
-.top-bar-links button:hover {
-  text-decoration: underline;
-}
+  .brand-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background-color: #eab308;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  }
 
-.top-bar-title {
-  font-weight: bold;
-  font-size: 16px;
-  letter-spacing: 0.5px;
-}
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
 
-.main-container {
-  display: flex;
-  flex: 1;
-}
+  .top-bar-title {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.6px;
+    color: #ffffff;
+  }
 
-/* Thanh Menu bên trái */
-.sidebar {
-  width: 210px;
-  background-color: #2f667a;
-  color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  padding: 12px 8px;
-  gap: 8px;
-}
+  .top-bar-subtitle {
+    font-size: 11px;
+    color: #cbd5e1;
+    font-weight: 400;
+  }
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  color: #ffffff;
-  text-decoration: none;
-  background-color: #38758b;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 14px;
-  transition: 0.2s;
-}
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-.nav-item:hover, .nav-item.active {
-  background-color: #eab308;
-  color: #1e293b;
-}
+  .header-icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
+  }
 
-/* Vùng Nội dung chính */
-.content-area {
-  flex: 1;
-  padding: 16px;
-  overflow-x: auto;
-}
+  .header-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+  }
 
-.panel-grid {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
+  .header-user-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 12px 0 5px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.18s ease;
+  }
 
-.card-box {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 14px;
-  margin-bottom: 16px;
-}
+  .header-user-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 
-.card-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: #26596a;
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 6px;
-}
+  .header-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #eab308;
+    color: #1e293b;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-/* Form nhập liệu */
-.form-row {
-  display: grid;
-  grid-template-columns: 130px 1fr;
-  align-items: center;
-  margin-bottom: 10px;
-  gap: 8px;
-}
+  .header-username {
+    font-size: 13px;
+    font-weight: 600;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-.form-row label {
-  font-size: 13px;
-  font-weight: 600;
-}
+  .header-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.2);
+  }
 
-.form-row input, .form-row select {
-  padding: 6px 10px;
-  border: 1px solid #94a3b8;
-  border-radius: 3px;
-  font-size: 13px;
-}
+  .header-logout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: #f1f5f9;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  }
 
-/* Cụm nút chức năng (Thêm, Lưu, Sửa, Xóa, Reset, Xuất Excel) */
-.btn-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
-}
+  .header-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.85);
+    border-color: rgba(239, 68, 68, 0.9);
+    color: #ffffff;
+  }
 
-.btn {
-  padding: 7px 14px;
-  border: 1px solid #1e293b;
-  border-radius: 3px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  background-color: #2f667a;
-  color: #ffffff;
-}
+  .main-container {
+    display: flex;
+    flex: 1;
+  }
 
-.btn:hover { opacity: 0.9; }
-.btn-warning { background-color: #eab308; color: #000; }
-.btn-danger { background-color: #dc2626; color: #fff; }
-.btn-excel { background-color: #16a34a; color: #fff; }
-.btn-secondary { background-color: #64748b; color: #fff; }
+  /* Thanh Menu bên trái */
+  .sidebar {
+    width: 210px;
+    background-color: #2f667a;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    padding: 12px 8px;
+    gap: 8px;
+  }
 
-/* Bảng dữ liệu */
-.data-table-wrapper {
-  max-height: 360px;
-  overflow-y: auto;
-  border: 1px solid #cbd5e1;
-}
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    color: #ffffff;
+    text-decoration: none;
+    background-color: #38758b;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: 0.2s;
+  }
 
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
+  .nav-item:hover, .nav-item.active {
+    background-color: #eab308;
+    color: #1e293b;
+  }
 
-.data-table th {
-  background-color: #e2e8f0;
-  color: #1e293b;
-  padding: 8px;
-  border: 1px solid #cbd5e1;
-  text-align: left;
-  position: sticky;
-  top: 0;
-}
+  /* Vùng Nội dung chính */
+  .content-area {
+    flex: 1;
+    padding: 16px;
+    overflow-x: auto;
+  }
 
-.data-table td {
-  padding: 7px 8px;
-  border: 1px solid #cbd5e1;
-}
+  .panel-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
 
-.data-table tr:hover {
-  background-color: #e0f2fe;
-  cursor: pointer;
-}
+  .card-box {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding: 14px;
+    margin-bottom: 16px;
+  }
 
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #26596a;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 6px;
+  }
+
+  /* Form nhập liệu */
+  .form-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .form-row label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .form-row input, .form-row select {
+    padding: 6px 10px;
+    border: 1px solid #94a3b8;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+
+  /* Cụm nút chức năng (Thêm, Lưu, Sửa, Xóa, Reset, Xuất Excel) */
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .btn {
+    padding: 7px 14px;
+    border: 1px solid #1e293b;
+    border-radius: 3px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background-color: #2f667a;
+    color: #ffffff;
+  }
+
+  .btn:hover { opacity: 0.9; }
+  .btn-warning { background-color: #eab308; color: #000; }
+  .btn-danger { background-color: #dc2626; color: #fff; }
+  .btn-excel { background-color: #16a34a; color: #fff; }
+  .btn-secondary { background-color: #64748b; color: #fff; }
+
+  /* Bảng dữ liệu */
+  .data-table-wrapper {
+    max-height: 360px;
+    overflow-y: auto;
+    border: 1px solid #cbd5e1;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .data-table th {
+    background-color: #e2e8f0;
+    color: #1e293b;
+    padding: 8px;
+    border: 1px solid #cbd5e1;
+    text-align: left;
+    position: sticky;
+    top: 0;
+  }
+
+  .data-table td {
+    padding: 7px 8px;
+    border: 1px solid #cbd5e1;
+  }
+
+  .data-table tr:hover {
+    background-color: #e0f2fe;
+    cursor: pointer;
+  }
 }

@@ -47,4 +47,9 @@ public interface ThuePhongRepository extends JpaRepository<ThuePhong, String> {
             @Param("ngayBatDau") LocalDate ngayBatDau,
             @Param("ngayKetThuc") LocalDate ngayKetThuc
     );
+
+    // 4. Lấy số thứ tự lớn nhất để tự sinh mã TP01, TP02...
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(MaThue, 3) AS UNSIGNED)) " +
+            "FROM ThuePhong WHERE MaThue REGEXP '^TP[0-9]+$'", nativeQuery = true)
+    Long layMaSoLonNhat();
 }

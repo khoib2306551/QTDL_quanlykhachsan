@@ -21,13 +21,19 @@ public class KhachHangService {
 
     @Transactional
     public KhachHang themKhachHang(KhachHang kh) {
-        if (kh.getMaKhachHang() == null || kh.getMaKhachHang().trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã khách hàng không được để trống");
+        if (kh.getTenKhachHang() == null || kh.getTenKhachHang().trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên khách hàng không được để trống");
         }
-        if (khachHangRepository.existsById(kh.getMaKhachHang().trim())) {
-            throw new IllegalArgumentException("Mã khách hàng " + kh.getMaKhachHang() + " đã tồn tại");
+
+        String maKH = (kh.getMaKhachHang() == null || kh.getMaKhachHang().trim().isEmpty())
+                ? taoMaKhachHangTuDong()
+                : kh.getMaKhachHang().trim();
+
+        if (khachHangRepository.existsById(maKH)) {
+            throw new IllegalArgumentException("Mã khách hàng " + maKH + " đã tồn tại");
         }
-        kh.setMaKhachHang(kh.getMaKhachHang().trim());
+
+        kh.setMaKhachHang(maKH);
         return khachHangRepository.save(kh);
     }
 
@@ -48,5 +54,16 @@ public class KhachHangService {
             throw new ResourceNotFoundException("Không tìm thấy khách hàng có mã " + maKH);
         }
         khachHangRepository.deleteById(maKH);
+    }
+
+    private String taoMaKhachHangTuDong() {
+        Long maxSo = khachHangRepository.layMaSoLonNhat();
+        long nextSo = (maxSo == null ? 0 : maxSo) + 1;
+        String maMoi = String.format("KH%02d", nextSo);
+        while (khachHangRepository.existsById(maMoi)) {
+            nextSo++;
+            maMoi = String.format("KH%02d", nextSo);
+        }
+        return maMoi;
     }
 }

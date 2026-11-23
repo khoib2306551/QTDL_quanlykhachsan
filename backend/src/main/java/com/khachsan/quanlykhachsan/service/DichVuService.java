@@ -22,16 +22,22 @@ public class DichVuService {
 
     @Transactional
     public DichVu themDichVu(DichVu dv) {
-        if (dv.getMaDichVu() == null || dv.getMaDichVu().trim().isEmpty()) {
-            throw new IllegalArgumentException("Mã dịch vụ không được để trống");
-        }
-        if (dichVuRepository.existsById(dv.getMaDichVu().trim())) {
-            throw new IllegalArgumentException("Mã dịch vụ " + dv.getMaDichVu() + " đã tồn tại");
+        if (dv.getTenDichVu() == null || dv.getTenDichVu().trim().isEmpty()) {
+            throw new IllegalArgumentException("Tên dịch vụ không được để trống");
         }
         if (dv.getGiaDichVu() == null || dv.getGiaDichVu().compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("Giá dịch vụ phải lớn hơn hoặc bằng 0");
         }
-        dv.setMaDichVu(dv.getMaDichVu().trim());
+
+        String maDV = (dv.getMaDichVu() == null || dv.getMaDichVu().trim().isEmpty())
+                ? taoMaDichVuTuDong()
+                : dv.getMaDichVu().trim();
+
+        if (dichVuRepository.existsById(maDV)) {
+            throw new IllegalArgumentException("Mã dịch vụ " + maDV + " đã tồn tại");
+        }
+
+        dv.setMaDichVu(maDV);
         return dichVuRepository.save(dv);
     }
 
@@ -51,5 +57,16 @@ public class DichVuService {
             throw new ResourceNotFoundException("Không tìm thấy dịch vụ có mã " + maDV);
         }
         dichVuRepository.deleteById(maDV);
+    }
+
+    private String taoMaDichVuTuDong() {
+        Long maxSo = dichVuRepository.layMaSoLonNhat();
+        long nextSo = (maxSo == null ? 0 : maxSo) + 1;
+        String maMoi = String.format("DV%02d", nextSo);
+        while (dichVuRepository.existsById(maMoi)) {
+            nextSo++;
+            maMoi = String.format("DV%02d", nextSo);
+        }
+        return maMoi;
     }
 }

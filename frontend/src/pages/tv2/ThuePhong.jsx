@@ -99,8 +99,8 @@ export default function ThuePhongPage() {
   };
 
   const xuLyThem = async () => {
-    if (!form.maThue.trim() || !form.maKhachHang.trim() || !form.maPhong.trim()) {
-      hienThongBao('Vui lòng chọn đủ mã thuê, khách hàng và phòng', 'error');
+    if (!form.maKhachHang.trim() || !form.maPhong.trim()) {
+      hienThongBao('Vui lòng chọn đủ khách hàng và phòng', 'error');
       return;
     }
     if (!form.ngayThue || !form.ngayNhan || !form.ngayTra) {
@@ -108,8 +108,8 @@ export default function ThuePhongPage() {
       return;
     }
     try {
-      await tv2Api.themThuePhong(form);
-      hienThongBao('Đã tạo phiếu thuê phòng mới');
+      const res = await tv2Api.themThuePhong({ ...form, maThue: '' });
+      hienThongBao(`Đã tạo phiếu thuê phòng mới (${res.data?.maThue || ''})`);
       taoMoiForm();
       taiDSThuePhong();
     } catch (e) {
@@ -269,6 +269,7 @@ export default function ThuePhongPage() {
         .tv2-field input:disabled {
           background: #f1f5f9;
           color: #64748b;
+          cursor: not-allowed;
         }
         .tv2-stay-box {
           display: flex;
@@ -436,9 +437,8 @@ export default function ThuePhongPage() {
               <label>Mã phiếu thuê</label>
               <input
                 value={form.maThue}
-                disabled={dangChon}
-                placeholder="VD: TP05"
-                onChange={(e) => setForm({ ...form, maThue: e.target.value })}
+                disabled
+                placeholder="Tự động sinh khi thêm mới"
               />
             </div>
 

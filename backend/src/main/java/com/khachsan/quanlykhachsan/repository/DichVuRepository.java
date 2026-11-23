@@ -16,4 +16,8 @@ public interface DichVuRepository extends JpaRepository<DichVu, String> {
             "OR LOWER(dv.maDichVu) LIKE LOWER(CONCAT('%', :tuKhoa, '%')) " +
             "OR LOWER(dv.tenDichVu) LIKE LOWER(CONCAT('%', :tuKhoa, '%'))")
     List<DichVu> timKiemDichVu(@Param("tuKhoa") String tuKhoa);
+
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(MaDichVu, 3) AS UNSIGNED)) " +
+            "FROM DichVu WHERE MaDichVu REGEXP '^DV[0-9]+$'", nativeQuery = true)
+    Long layMaSoLonNhat();
 }

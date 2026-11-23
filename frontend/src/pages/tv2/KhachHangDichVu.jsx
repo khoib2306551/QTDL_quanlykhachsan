@@ -65,17 +65,17 @@ export default function KhachHangDichVuPage() {
   };
 
   const xuLyThemKH = async () => {
-    if (!formKH.maKhachHang.trim() || !formKH.tenKhachHang.trim()) {
-      hienThongBao('Vui lòng nhập mã và tên khách hàng', 'error');
+    if (!formKH.tenKhachHang.trim()) {
+      hienThongBao('Vui lòng nhập tên khách hàng', 'error');
       return;
     }
     try {
-      await tv2Api.themKH(formKH);
-      hienThongBao('Đã thêm khách hàng mới');
+      const res = await tv2Api.themKH({ ...formKH, maKhachHang: '' });
+      hienThongBao(`Đã thêm khách hàng mới (${res.data?.maKhachHang || ''})`);
       resetKhachHang();
       taiDSKhachHang(tuKhoaKH);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Mã khách hàng đã tồn tại hoặc không hợp lệ', 'error');
+      hienThongBao(e.response?.data?.message || 'Không thể thêm khách hàng', 'error');
     }
   };
 
@@ -125,17 +125,21 @@ export default function KhachHangDichVuPage() {
   };
 
   const xuLyThemDV = async () => {
-    if (!formDV.maDichVu.trim() || !formDV.tenDichVu.trim() || formDV.giaDichVu === '') {
-      hienThongBao('Vui lòng nhập đủ mã, tên và đơn giá dịch vụ', 'error');
+    if (!formDV.tenDichVu.trim() || formDV.giaDichVu === '') {
+      hienThongBao('Vui lòng nhập đủ tên và đơn giá dịch vụ', 'error');
       return;
     }
     try {
-      await tv2Api.themDichVu({ ...formDV, giaDichVu: Number(formDV.giaDichVu) });
-      hienThongBao('Đã thêm dịch vụ mới');
+      const res = await tv2Api.themDichVu({
+        ...formDV,
+        maDichVu: '',
+        giaDichVu: Number(formDV.giaDichVu),
+      });
+      hienThongBao(`Đã thêm dịch vụ mới (${res.data?.maDichVu || ''})`);
       resetDichVu();
       taiDSDichVu(tuKhoaDV);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Mã dịch vụ đã tồn tại hoặc dữ liệu lỗi', 'error');
+      hienThongBao(e.response?.data?.message || 'Không thể thêm dịch vụ', 'error');
     }
   };
 
@@ -522,9 +526,8 @@ export default function KhachHangDichVuPage() {
                 <label>Mã khách hàng</label>
                 <input
                   value={formKH.maKhachHang}
-                  disabled={dangChonKH}
-                  placeholder="VD: KH05"
-                  onChange={(e) => setFormKH({ ...formKH, maKhachHang: e.target.value })}
+                  disabled
+                  placeholder="Tự động sinh"
                 />
               </div>
               <div className="tv2-field">
@@ -668,9 +671,8 @@ export default function KhachHangDichVuPage() {
                 <label>Mã dịch vụ</label>
                 <input
                   value={formDV.maDichVu}
-                  disabled={dangChonDV}
-                  placeholder="VD: DV06"
-                  onChange={(e) => setFormDV({ ...formDV, maDichVu: e.target.value })}
+                  disabled
+                  placeholder="Tự động sinh"
                 />
               </div>
               <div className="tv2-field">
