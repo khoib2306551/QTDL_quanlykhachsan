@@ -4,7 +4,7 @@ import com.khachsan.quanlykhachsan.entity.Phong;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
-
+@Repository
 public interface PhongRepository extends JpaRepository<Phong, String> {
 
     Optional<Phong> findByMaPhong(String maPhong);
