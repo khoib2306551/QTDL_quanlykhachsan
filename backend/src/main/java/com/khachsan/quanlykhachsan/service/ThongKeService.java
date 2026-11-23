@@ -18,16 +18,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/**
- * Xử lý nghiệp vụ thống kê doanh thu.
- *
- * Nguồn dữ liệu:
- * - HoaDon.NgayLapHoaDon: thời gian ghi nhận doanh thu.
- * - HoaDon.TongTien: số tiền dùng để thống kê.
- *
- * Lưu ý: database hiện tại chưa có trạng thái thanh toán/hủy hóa đơn,
- * vì vậy service thống kê tất cả hóa đơn nằm trong khoảng thời gian được chọn.
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -42,10 +32,6 @@ public class ThongKeService {
 
     private final ThongKeRepository thongKeRepository;
 
-    /**
-     * Thống kê doanh thu theo kiểu NGAY, TUAN, THANG, QUY hoặc NAM
-     * trong năm được chọn.
-     */
     public List<ThongKeResponse> thongKeDoanhThu(String kieuThongKe, Integer nam) {
         String kieuDaChuanHoa = chuanHoaKieuThongKe(kieuThongKe);
         kiemTraNam(nam);
@@ -60,10 +46,6 @@ public class ThongKeService {
                 .toList();
     }
 
-    /**
-     * Thống kê doanh thu theo từng ngày trong khoảng ngày tùy chọn.
-     * Hai đầu mốc đều được tính vào kết quả.
-     */
     public List<ThongKeResponse> thongKeTuNgayDenNgay(LocalDate tuNgay, LocalDate denNgay) {
         kiemTraKhoangNgay(tuNgay, denNgay);
 
@@ -77,11 +59,6 @@ public class ThongKeService {
                 .toList();
     }
 
-    /**
-     * Lấy kết quả của riêng một quý trong năm.
-     * Stored procedure trả về các quý có phát sinh hóa đơn trong năm;
-     * nếu quý được chọn chưa có hóa đơn, service trả về các chỉ số bằng 0.
-     */
     public ThongKeResponse thongKeTheoQuy(Integer quy, Integer nam) {
         if (quy == null || quy < 1 || quy > 4) {
             throw new ResponseStatusException(
@@ -97,16 +74,23 @@ public class ThongKeService {
                 .orElseGet(() -> taoKetQuaQuyRong(quy, nam));
     }
 
-    /**
-     * Lấy các chỉ số tổng hợp trong khoảng ngày được chọn.
-     */
     public ChiSoTongHopResponse layChiSoTongHop(LocalDate tuNgay, LocalDate denNgay) {
         kiemTraKhoangNgay(tuNgay, denNgay);
 
-        Object[] row = thongKeRepository.layChiSoTongHop(tuNgay, denNgay);
+        List<Object[]> rows = thongKeRepository.layChiSoTongHop(tuNgay, denNgay);
+
+        if (rows == null || rows.isEmpty()) {
+            return taoChiSoTongHopRong();
+        }
+
+        Object[] row = chuanHoaDongTongHop(rows.get(0));
         if (row == null || row.length < 5) {
+            int soCotNhanDuoc = row == null ? 0 : row.length;
             throw new IllegalStateException(
-                    "Không nhận được đầy đủ dữ liệu chỉ số tổng hợp từ database"
+                    "Kết quả chỉ số tổng hợp không đủ cột: cần 5 cột "
+                            + "(SoLuongHoaDon, HoaDonCaoNhat, HoaDonThapNhat, "
+                            + "TrungBinhHoaDon, TongDoanhThu) nhưng nhận được "
+                            + soCotNhanDuoc + " cột."
             );
         }
 
@@ -161,9 +145,6 @@ public class ThongKeService {
         }
     }
 
-    /**
-     * Ánh xạ các cấu trúc Object[] khác nhau do stored procedure trả về.
-     */
     private ThongKeResponse chuyenDongStoredProcedure(Object[] row, String kieuThongKe) {
         if (row == null) {
             throw new IllegalStateException("Một dòng dữ liệu thống kê trả về null");
@@ -224,6 +205,23 @@ public class ThongKeService {
                 .hoaDonThapNhat(toBigDecimal(row[3]))
                 .trungBinhHoaDon(toBigDecimal(row[4]))
                 .tongDoanhThu(toBigDecimal(row[5]))
+                .build();
+    }
+
+    private Object[] chuanHoaDongTongHop(Object[] row) {
+        if (row != null && row.length == 1 && row[0] instanceof Object[] nestedRow) {
+            return nestedRow;
+        }
+        return row;
+    }
+
+    private ChiSoTongHopResponse taoChiSoTongHopRong() {
+        return ChiSoTongHopResponse.builder()
+                .soLuongHoaDon(0L)
+                .hoaDonCaoNhat(ZERO)
+                .hoaDonThapNhat(ZERO)
+                .trungBinhHoaDon(ZERO)
+                .tongDoanhThu(ZERO)
                 .build();
     }
 
