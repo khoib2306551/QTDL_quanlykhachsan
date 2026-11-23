@@ -8,6 +8,19 @@ const apiClient = axios.create({
 });
 
 
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    console.log(">>TOKEN: ",token); 
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // XÁC THỰC, NHÂN VIÊN, LOẠI PHÒNG & PHÒNG
 export const tv1Api = {
   // Xác thực
@@ -15,22 +28,23 @@ export const tv1Api = {
   dangKy: (data) => apiClient.post('/auth/dang-ky', data),
 
   // Nhân viên
-  layDSNV: (tuKhoa = '') => apiClient.get('/nhan-vien', { params: { tuKhoa } }),
+  layDSNV: (tuKhoa = '', size = 10, page = 1) => apiClient.get('/nhan-vien', { params: { keyword: tuKhoa, size, page } }),
+  NVDetail:(maNV) =>  apiClient.get(`/nhan-vien/${maNV}`),
   themNV: (data) => apiClient.post('/nhan-vien', data),
-  suaNV: (maNV, data) => apiClient.put(`/nhan-vien/${maNV}`, data),
+  suaNV: (maNV, data) => apiClient.patch(`/nhan-vien/${maNV}`, data),
   xoaNV: (maNV) => apiClient.delete(`/nhan-vien/${maNV}`),
 
   // Loại phòng
-  layDSLoaiPhong: () => apiClient.get('/loai-phong'),
+  layDSLoaiPhong: ( size = 10, page = 1) => apiClient.get('/loai-phong',{params:{size, page}}),
   themLoaiPhong: (data) => apiClient.post('/loai-phong', data),
-  suaLoaiPhong: (maLoai, data) => apiClient.put(`/loai-phong/${maLoai}`, data),
+  suaLoaiPhong: (maLoai, data) => apiClient.patch(`/loai-phong/${maLoai}`, data),
   xoaLoaiPhong: (maLoai) => apiClient.delete(`/loai-phong/${maLoai}`),
 
   // Phòng
-  layDSPhong: (params) => apiClient.get('/phong', { params }),
+  layDSPhong:( size = 10, page = 1) => apiClient.get('/phong',{params:{size, page}}),
   chiTietPhong: (maPhong) => apiClient.get(`/phong/${maPhong}`),
   themPhong: (data) => apiClient.post('/phong', data),
-  suaPhong: (maPhong, data) => apiClient.put(`/phong/${maPhong}`, data),
+  suaPhong: (maPhong, data) => apiClient.patch(`/phong/${maPhong}`, data),
   xoaPhong: (maPhong) => apiClient.delete(`/phong/${maPhong}`),
 };
 

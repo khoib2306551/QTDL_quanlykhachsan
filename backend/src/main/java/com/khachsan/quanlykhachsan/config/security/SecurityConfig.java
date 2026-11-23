@@ -28,6 +28,7 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins}")
     private  String[] allowOrigins;
     private final JwtFilter jwtFilter;
+    private final CustomAuthenticationEntryPoint entryPoint;
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception{
         httpSecurity.
@@ -35,7 +36,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(this.configurationSource()))
                 .authorizeHttpRequests(request
-                ->  request.anyRequest().permitAll())
+                -> request.requestMatchers("/api/auth/**").permitAll()
+                                .anyRequest().authenticated()
+                )
+                .exceptionHandling(handle -> handle.authenticationEntryPoint(entryPoint))
                 .addFilterBefore(this.jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
 
@@ -53,10 +57,7 @@ public class SecurityConfig {
         return build;
     }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+
 
 
     @Bean
