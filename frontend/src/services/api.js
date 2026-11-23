@@ -113,7 +113,11 @@ export const tv4Api = {
   xuatExcelPhong: () => apiClient.get('/excel/xuat-phong', { responseType: 'blob' }),
   xuatExcelThuePhong: () => apiClient.get('/excel/xuat-thue-phong', { responseType: 'blob' }),
   xuatExcelHoaDon: () => apiClient.get('/excel/xuat-hoa-don', { responseType: 'blob' }),
-  xuatExcelThongKe: () => apiClient.get('/excel/xuat-thong-ke', { responseType: 'blob' }),
+  xuatExcelThongKe: (params = {}) =>
+     apiClient.get('/excel/xuat-thong-ke', {
+       params,
+       responseType: 'blob'
+     }),
   docFileExcel: (file) => {
     const formData = new FormData();
     formData.append('file', file);

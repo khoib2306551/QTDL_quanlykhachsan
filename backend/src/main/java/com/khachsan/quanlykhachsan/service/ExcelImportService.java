@@ -1,8 +1,16 @@
 package com.khachsan.quanlykhachsan.service;
 
-import com.khachsan.quanlykhachsan.dto.request.ExcelImportRequest;
-import com.khachsan.quanlykhachsan.dto.response.ExcelImportResponse;
-import lombok.RequiredArgsConstructor;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -17,27 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import com.khachsan.quanlykhachsan.dto.request.ExcelImportRequest;
+import com.khachsan.quanlykhachsan.dto.response.ExcelImportResponse;
 
-/**
- * Xử lý nhập dữ liệu từ Excel.
- *
- * Phạm vi hiện tại: nhập mới phòng (PHONG) từ worksheet có các cột
- * Mã phòng, Số phòng, Mã loại, Trạng thái. Các cột Tên loại phòng,
- * Mô tả và Giá phòng chỉ được trả lại ở phần xem trước, không ghi vào
- * LoaiPhong vì phạm vi nhập bảng LoaiPhong chưa được nhóm xác nhận.
- *
- * Chỉ hỗ trợ INSERT, không cập nhật/ghi đè dữ liệu đã tồn tại.
- */
+import lombok.RequiredArgsConstructor;
+
+
 @Service
 @RequiredArgsConstructor
 public class ExcelImportService {
@@ -80,10 +73,7 @@ public class ExcelImportService {
                 .build();
     }
 
-    /**
-     * Xác thực lại toàn bộ dữ liệu do frontend gửi và INSERT trong một transaction.
-     * Nếu có bất kỳ dòng không hợp lệ nào, không ghi dòng nào vào database.
-     */
+   
     @Transactional
     public ExcelImportResponse ghiDatabase(ExcelImportRequest request) {
         if (request == null) {
