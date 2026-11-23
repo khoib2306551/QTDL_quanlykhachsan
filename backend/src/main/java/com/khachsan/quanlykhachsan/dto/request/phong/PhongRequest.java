@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class PhongUpdateRequest {
+public class PhongRequest {
     private String soPhong;
     private String maLoai;
     private String trangThai;
