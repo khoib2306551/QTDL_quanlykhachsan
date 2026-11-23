@@ -82,7 +82,7 @@ CREATE TABLE HoaDon (
 );
 
 
-
+ALTER TABLE LoaiPhong ADD COLUMN MoTa VARCHAR(500) NULL;
 
 
 
@@ -172,13 +172,21 @@ BEGIN
     ORDER BY tp.NgayNhan ASC;
 END$$
 
--- 4. STORED PROCEDURE: Thống kê doanh thu theo Ngày, Tuần, Tháng
+
+-- 4. STORED PROCEDURE: Thống kê doanh thu theo Ngày, Tuần, Tháng, Quý, Năm
+
+DROP PROCEDURE IF EXISTS sp_ThongKeDoanhThu;
+
+DELIMITER $$
+
 CREATE PROCEDURE sp_ThongKeDoanhThu(
     IN p_KieuThongKe VARCHAR(10),
     IN p_Nam INT
 )
 BEGIN
+
     IF UPPER(p_KieuThongKe) = 'NGAY' THEN
+
         SELECT
             NgayLapHoaDon AS MocThoiGian,
             COUNT(MaHoaDon) AS SoLuongHoaDon,
@@ -192,6 +200,7 @@ BEGIN
         ORDER BY NgayLapHoaDon DESC;
 
     ELSEIF UPPER(p_KieuThongKe) = 'TUAN' THEN
+
         SELECT
             YEAR(NgayLapHoaDon) AS Nam,
             WEEK(NgayLapHoaDon, 1) AS TuanThu,
@@ -202,10 +211,13 @@ BEGIN
             SUM(TongTien) AS TongDoanhThu
         FROM HoaDon
         WHERE YEAR(NgayLapHoaDon) = p_Nam
-        GROUP BY YEAR(NgayLapHoaDon), WEEK(NgayLapHoaDon, 1)
+        GROUP BY
+            YEAR(NgayLapHoaDon),
+            WEEK(NgayLapHoaDon, 1)
         ORDER BY TuanThu ASC;
-
+ 
     ELSEIF UPPER(p_KieuThongKe) = 'THANG' THEN
+
         SELECT
             YEAR(NgayLapHoaDon) AS Nam,
             MONTH(NgayLapHoaDon) AS Thang,
@@ -216,12 +228,54 @@ BEGIN
             SUM(TongTien) AS TongDoanhThu
         FROM HoaDon
         WHERE YEAR(NgayLapHoaDon) = p_Nam
-        GROUP BY YEAR(NgayLapHoaDon), MONTH(NgayLapHoaDon)
-        ORDER BY Thang A	SC;
+        GROUP BY
+            YEAR(NgayLapHoaDon),
+            MONTH(NgayLapHoaDon)
+        ORDER BY Thang ASC;
+
+    ELSEIF UPPER(p_KieuThongKe) = 'QUY' THEN
+
+        SELECT
+            YEAR(NgayLapHoaDon) AS Nam,
+            QUARTER(NgayLapHoaDon) AS Quy,
+            COUNT(MaHoaDon) AS SoLuongHoaDon,
+            MAX(TongTien) AS HoaDonCaoNhat,
+            MIN(TongTien) AS HoaDonThapNhat,
+            ROUND(AVG(TongTien), 2) AS TrungBinhHoaDon,
+            SUM(TongTien) AS TongDoanhThu
+        FROM HoaDon
+        WHERE YEAR(NgayLapHoaDon) = p_Nam
+        GROUP BY
+            YEAR(NgayLapHoaDon),
+            QUARTER(NgayLapHoaDon)
+        ORDER BY Quy ASC;
+
+    ELSEIF UPPER(p_KieuThongKe) = 'NAM' THEN
+
+        SELECT
+            YEAR(NgayLapHoaDon) AS Nam,
+            COUNT(MaHoaDon) AS SoLuongHoaDon,
+            MAX(TongTien) AS HoaDonCaoNhat,
+            MIN(TongTien) AS HoaDonThapNhat,
+            ROUND(AVG(TongTien), 2) AS TrungBinhHoaDon,
+            SUM(TongTien) AS TongDoanhThu
+        FROM HoaDon
+        WHERE YEAR(NgayLapHoaDon) = p_Nam
+        GROUP BY YEAR(NgayLapHoaDon)
+        ORDER BY Nam ASC;
+
+    -- Kiểm tra kiểu thống kê không hợp lệ
+    ELSE
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT =
+        'Kieu thong ke khong hop le: NGAY, TUAN, THANG, QUY, NAM';
+
     END IF;
+
 END$$
 
 DELIMITER ;
+
 
 
 
@@ -304,3 +358,5 @@ CALL sp_DanhSachDatPhongTheoThoiGian('2026-11-01', '2026-11-30');
 CALL sp_ThongKeDoanhThu('NGAY', 2026);
 CALL sp_ThongKeDoanhThu('TUAN', 2026);
 CALL sp_ThongKeDoanhThu('THANG', 2026);
+CALL sp_ThongKeDoanhThu('QUY', 2026);
+CALL sp_ThongKeDoanhThu('NAM', 2026);
