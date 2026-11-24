@@ -12,12 +12,26 @@ const FORM_MAC_DINH = {
   trangThai: 'Đã đặt',
 };
 
+const tachMang = (res) => {
+  const body = res?.data;
+  if (Array.isArray(body)) return body;
+  if (Array.isArray(body?.data?.content)) return body.data.content;
+  if (Array.isArray(body?.data)) return body.data;
+  if (Array.isArray(body?.content)) return body.content;
+  return [];
+};
+
+const layThongBaoLoi = (err, macDinh) => {
+  return err?.response?.data?.message || err?.response?.data?.error || macDinh;
+};
+
 export default function ThuePhongPage() {
   const [dsThue, setDsThue] = useState([]);
   const [dsKH, setDsKH] = useState([]);
   const [dsPhong, setDsPhong] = useState([]);
   const [form, setForm] = useState(FORM_MAC_DINH);
   const [dangChon, setDangChon] = useState(false);
+  const [daTraPhong, setDaTraPhong] = useState(false);
   const [soNgayLuuTru, setSoNgayLuuTru] = useState(0);
   const [boLocNgay, setBoLocNgay] = useState({
     ngayBatDau: '2026-11-01',
@@ -33,32 +47,27 @@ export default function ThuePhongPage() {
   const taiDSThuePhong = async () => {
     try {
       const res = await tv2Api.layDSThuePhong();
-      setDsThue(res.data || []);
+      setDsThue(tachMang(res));
     } catch (e) {
-      console.error(e);
-      hienThongBao('Không tải được danh sách thuê phòng', 'error');
+      console.error('Lỗi tải danh sách thuê phòng:', e);
+      hienThongBao(layThongBaoLoi(e, 'Không tải được danh sách thuê phòng'), 'error');
     }
   };
 
   const taiDanhMucPhuTro = async () => {
     try {
       const resKH = await tv2Api.layDSKH();
-      setDsKH(resKH.data || []);
+      setDsKH(tachMang(resKH));
     } catch (e) {
-      console.error(e);
+      console.error('Lỗi tải danh sách khách hàng:', e);
     }
+
     try {
-      const resPhong = await tv1Api.layDSPhong();
-      setDsPhong(resPhong.data || []);
-    } catch {
-      setDsPhong([
-        { maPhong: 'P101', soPhong: '101' },
-        { maPhong: 'P102', soPhong: '102' },
-        { maPhong: 'P201', soPhong: '201' },
-        { maPhong: 'P202', soPhong: '202' },
-        { maPhong: 'P301', soPhong: '301' },
-        { maPhong: 'P401', soPhong: '401' },
-      ]);
+      const resPhong = await tv1Api.layDSPhong(100, 1);
+      setDsPhong(tachMang(resPhong));
+    } catch (e) {
+      console.error('Lỗi tải danh sách phòng:', e);
+      setDsPhong([]);
     }
   };
 
@@ -71,7 +80,10 @@ export default function ThuePhongPage() {
     if (form.ngayNhan && form.ngayTra) {
       tv2Api
         .tinhSoNgay(form.ngayNhan, form.ngayTra)
-        .then((res) => setSoNgayLuuTru(res.data ?? 0))
+        .then((res) => {
+          const val = typeof res.data === 'number' ? res.data : (res.data?.data ?? 0);
+          setSoNgayLuuTru(val);
+        })
         .catch(() => setSoNgayLuuTru(0));
     } else {
       setSoNgayLuuTru(0);
@@ -90,12 +102,14 @@ export default function ThuePhongPage() {
     });
     setSoNgayLuuTru(tp.soNgayLuuTru || 0);
     setDangChon(true);
+    setDaTraPhong(tp.trangThai === 'Đã trả');
   };
 
   const taoMoiForm = () => {
     setForm(FORM_MAC_DINH);
     setSoNgayLuuTru(0);
     setDangChon(false);
+    setDaTraPhong(false);
   };
 
   const xuLyThem = async () => {
@@ -107,13 +121,18 @@ export default function ThuePhongPage() {
       hienThongBao('Vui lòng chọn đầy đủ ngày thuê, ngày nhận và ngày trả', 'error');
       return;
     }
+    if (form.ngayTra < form.ngayNhan) {
+      hienThongBao('Ngày trả phòng phải lớn hơn hoặc bằng ngày nhận phòng', 'error');
+      return;
+    }
     try {
       const res = await tv2Api.themThuePhong({ ...form, maThue: '' });
-      hienThongBao(`Đã tạo phiếu thuê phòng mới (${res.data?.maThue || ''})`);
+      hienThongBao(`Đã tạo phiếu thuê mới (${res.data?.maThue || ''})`);
       taoMoiForm();
       taiDSThuePhong();
+      taiDanhMucPhuTro();
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Không thể thêm phiếu thuê phòng', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không thể thêm phiếu thuê phòng'), 'error');
     }
   };
 
@@ -122,12 +141,28 @@ export default function ThuePhongPage() {
       hienThongBao('Chọn một phiếu thuê trong bảng để cập nhật', 'error');
       return;
     }
+    if (daTraPhong) {
+      hienThongBao('Phiếu thuê đã trả phòng, không thể chỉnh sửa', 'error');
+      return;
+    }
+    if (!form.ngayThue || !form.ngayNhan || !form.ngayTra) {
+      hienThongBao('Vui lòng chọn đầy đủ ngày thuê, ngày nhận và ngày trả', 'error');
+      return;
+    }
+    if (form.ngayTra < form.ngayNhan) {
+      hienThongBao('Ngày trả phòng phải lớn hơn hoặc bằng ngày nhận phòng', 'error');
+      return;
+    }
     try {
       await tv2Api.suaThuePhong(form.maThue, form);
       hienThongBao('Đã cập nhật phiếu thuê phòng');
+      if (form.trangThai === 'Đã trả') {
+        setDaTraPhong(true);
+      }
       taiDSThuePhong();
+      taiDanhMucPhuTro();
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Không thể cập nhật phiếu thuê', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không thể cập nhật phiếu thuê'), 'error');
     }
   };
 
@@ -142,8 +177,9 @@ export default function ThuePhongPage() {
       hienThongBao('Đã xóa phiếu thuê phòng');
       taoMoiForm();
       taiDSThuePhong();
+      taiDanhMucPhuTro();
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Không thể xóa phiếu thuê này', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không thể xóa phiếu thuê này'), 'error');
     }
   };
 
@@ -152,13 +188,18 @@ export default function ThuePhongPage() {
       hienThongBao('Vui lòng chọn ngày bắt đầu và ngày kết thúc', 'error');
       return;
     }
+    if (boLocNgay.ngayKetThuc < boLocNgay.ngayBatDau) {
+      hienThongBao('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu', 'error');
+      return;
+    }
     try {
       const res = await tv2Api.timTheoThoiGian(boLocNgay.ngayBatDau, boLocNgay.ngayKetThuc);
-      setDsThue(res.data || []);
-      hienThongBao(`Có ${(res.data || []).length} phiếu thuê trong khoảng thời gian đã chọn`);
+      const ketQua = tachMang(res);
+      setDsThue(ketQua);
+      hienThongBao(`Tìm thấy ${ketQua.length} phiếu thuê trong khoảng thời gian đã chọn`);
     } catch (e) {
-      console.error(e);
-      hienThongBao('Không thể lọc danh sách theo thời gian', 'error');
+      console.error('Lỗi lọc theo thời gian:', e);
+      hienThongBao(layThongBaoLoi(e, 'Không thể lọc danh sách theo thời gian'), 'error');
     }
   };
 
@@ -266,7 +307,8 @@ export default function ThuePhongPage() {
           border-color: #2f667a;
           box-shadow: 0 0 0 3px rgba(47, 102, 122, 0.12);
         }
-        .tv2-field input:disabled {
+        .tv2-field input:disabled,
+        .tv2-field select:disabled {
           background: #f1f5f9;
           color: #64748b;
           cursor: not-allowed;
@@ -287,6 +329,7 @@ export default function ThuePhongPage() {
           grid-column: 1 / -1;
           display: flex;
           flex-wrap: wrap;
+          align-items: center;
           gap: 8px;
           padding-top: 10px;
           border-top: 1px solid #f1f5f9;
@@ -304,25 +347,29 @@ export default function ThuePhongPage() {
           cursor: pointer;
           transition: all 0.15s;
         }
+        .tv2-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
         .tv2-btn-primary {
           background: #26596a;
           color: #ffffff;
         }
-        .tv2-btn-primary:hover {
+        .tv2-btn-primary:hover:not(:disabled) {
           background: #1e4755;
         }
         .tv2-btn-amber {
           background: #f59e0b;
           color: #ffffff;
         }
-        .tv2-btn-amber:hover {
+        .tv2-btn-amber:hover:not(:disabled) {
           background: #d97706;
         }
         .tv2-btn-danger {
           background: #ef4444;
           color: #ffffff;
         }
-        .tv2-btn-danger:hover {
+        .tv2-btn-danger:hover:not(:disabled) {
           background: #dc2626;
         }
         .tv2-btn-ghost {
@@ -330,9 +377,14 @@ export default function ThuePhongPage() {
           color: #475569;
           border-color: #e2e8f0;
         }
-        .tv2-btn-ghost:hover {
+        .tv2-btn-ghost:hover:not(:disabled) {
           background: #e2e8f0;
           color: #1e293b;
+        }
+        .tv2-lock-note {
+          font-size: 12.5px;
+          color: #b45309;
+          margin-left: auto;
         }
         .tv2-table-scroll {
           max-height: 360px;
@@ -446,6 +498,7 @@ export default function ThuePhongPage() {
               <label>Trạng thái</label>
               <select
                 value={form.trangThai}
+                disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, trangThai: e.target.value })}
               >
                 <option value="Đã đặt">Đã đặt</option>
@@ -458,6 +511,7 @@ export default function ThuePhongPage() {
               <label>Khách hàng</label>
               <select
                 value={form.maKhachHang}
+                disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, maKhachHang: e.target.value })}
               >
                 <option value="">-- Chọn khách hàng --</option>
@@ -473,12 +527,15 @@ export default function ThuePhongPage() {
               <label>Phòng</label>
               <select
                 value={form.maPhong}
+                disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, maPhong: e.target.value })}
               >
                 <option value="">-- Chọn phòng --</option>
                 {dsPhong.map((p) => (
                   <option key={p.maPhong} value={p.maPhong}>
-                    {p.maPhong} {p.soPhong ? `(Phòng ${p.soPhong})` : ''}
+                    {p.maPhong}
+                    {p.soPhong ? ` - Phòng ${p.soPhong}` : ''}
+                    {p.trangThai ? ` (${p.trangThai})` : ''}
                   </option>
                 ))}
               </select>
@@ -489,6 +546,7 @@ export default function ThuePhongPage() {
               <input
                 type="date"
                 value={form.ngayThue}
+                disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, ngayThue: e.target.value })}
               />
             </div>
@@ -498,6 +556,7 @@ export default function ThuePhongPage() {
               <input
                 type="date"
                 value={form.ngayNhan}
+                disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, ngayNhan: e.target.value })}
               />
             </div>
@@ -507,15 +566,26 @@ export default function ThuePhongPage() {
               <input
                 type="date"
                 value={form.ngayTra}
+                disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, ngayTra: e.target.value })}
               />
             </div>
 
             <div className="tv2-actions">
-              <button className="tv2-btn tv2-btn-primary" onClick={xuLyThem}>
+              <button
+                className="tv2-btn tv2-btn-primary"
+                onClick={xuLyThem}
+                disabled={dangChon}
+                title={dangChon ? 'Bấm Làm mới trước khi thêm phiếu mới' : ''}
+              >
                 <Plus size={15} /> Thêm phiếu
               </button>
-              <button className="tv2-btn tv2-btn-amber" onClick={xuLySua}>
+              <button
+                className="tv2-btn tv2-btn-amber"
+                onClick={xuLySua}
+                disabled={daTraPhong}
+                title={daTraPhong ? 'Phiếu đã trả phòng, không thể sửa' : ''}
+              >
                 <Pencil size={15} /> Sửa
               </button>
               <button className="tv2-btn tv2-btn-danger" onClick={xuLyXoa}>
@@ -524,6 +594,9 @@ export default function ThuePhongPage() {
               <button className="tv2-btn tv2-btn-ghost" onClick={taoMoiForm}>
                 <RotateCcw size={15} /> Làm mới
               </button>
+              {daTraPhong && (
+                <span className="tv2-lock-note">Phiếu đã trả phòng, không thể chỉnh sửa</span>
+              )}
             </div>
           </div>
         </div>

@@ -1,5 +1,12 @@
 package com.khachsan.quanlykhachsan.service;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.khachsan.quanlykhachsan.config.security.CustomUserDetail;
 import com.khachsan.quanlykhachsan.config.security.JwtUtil;
 import com.khachsan.quanlykhachsan.dto.request.auth.LoginRequest;
@@ -8,14 +15,9 @@ import com.khachsan.quanlykhachsan.dto.response.auth.AuthResponse;
 import com.khachsan.quanlykhachsan.dto.response.auth.UserInfo;
 import com.khachsan.quanlykhachsan.entity.NhanVien;
 import com.khachsan.quanlykhachsan.exception.AuthException;
-import org.springframework.security.core.AuthenticationException;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
@@ -24,6 +26,7 @@ public class AuthService {
 
     private final NhanVienService nhanVienService;
     private final JwtUtil jwtUtil;
+    @SuppressWarnings("unused")
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     public AuthResponse register(RegisterRequest request){

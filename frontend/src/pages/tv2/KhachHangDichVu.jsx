@@ -5,6 +5,26 @@ import { tv2Api } from '../../services/api';
 const KH_MAC_DINH = { maKhachHang: '', tenKhachHang: '', diaChi: '', soDienThoai: '' };
 const DV_MAC_DINH = { maDichVu: '', tenDichVu: '', giaDichVu: '' };
 
+// Tách mảng an toàn để tránh crash nếu API trả về định dạng khác mảng trực tiếp
+const tachMang = (res) => {
+  const body = res?.data;
+  if (Array.isArray(body)) return body;
+  if (Array.isArray(body?.data?.content)) return body.data.content;
+  if (Array.isArray(body?.data)) return body.data;
+  return [];
+};
+
+// Lấy thông báo lỗi từ Backend
+const layThongBaoLoi = (err, macDinh) => {
+  return err?.response?.data?.message || err?.response?.data?.error || macDinh;
+};
+
+// Nhận diện lỗi ràng buộc khóa ngoại từ MySQL
+const laLoiKhoaNgoai = (msg = '') => {
+  const lower = msg.toLowerCase();
+  return lower.includes('foreign key') || lower.includes('constraint');
+};
+
 export default function KhachHangDichVuPage() {
   const [dsKH, setDsKH] = useState([]);
   const [formKH, setFormKH] = useState(KH_MAC_DINH);
@@ -26,20 +46,20 @@ export default function KhachHangDichVuPage() {
   const taiDSKhachHang = async (tuKhoa = '') => {
     try {
       const res = await tv2Api.layDSKH(tuKhoa);
-      setDsKH(res.data || []);
+      setDsKH(tachMang(res));
     } catch (e) {
       console.error(e);
-      hienThongBao('Không tải được danh sách khách hàng', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không tải được danh sách khách hàng'), 'error');
     }
   };
 
   const taiDSDichVu = async (tuKhoa = '') => {
     try {
       const res = await tv2Api.layDSDichVu(tuKhoa);
-      setDsDV(res.data || []);
+      setDsDV(tachMang(res));
     } catch (e) {
       console.error(e);
-      hienThongBao('Không tải được danh sách dịch vụ', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không tải được danh sách dịch vụ'), 'error');
     }
   };
 
@@ -70,12 +90,17 @@ export default function KhachHangDichVuPage() {
       return;
     }
     try {
-      const res = await tv2Api.themKH({ ...formKH, maKhachHang: '' });
+      const res = await tv2Api.themKH({
+        maKhachHang: '',
+        tenKhachHang: formKH.tenKhachHang.trim(),
+        diaChi: formKH.diaChi.trim(),
+        soDienThoai: formKH.soDienThoai.trim(),
+      });
       hienThongBao(`Đã thêm khách hàng mới (${res.data?.maKhachHang || ''})`);
       resetKhachHang();
       taiDSKhachHang(tuKhoaKH);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Không thể thêm khách hàng', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không thể thêm khách hàng'), 'error');
     }
   };
 
@@ -84,12 +109,21 @@ export default function KhachHangDichVuPage() {
       hienThongBao('Chọn một khách hàng trong bảng để sửa', 'error');
       return;
     }
+    if (!formKH.tenKhachHang.trim()) {
+      hienThongBao('Tên khách hàng không được để trống', 'error');
+      return;
+    }
     try {
-      await tv2Api.suaKH(formKH.maKhachHang, formKH);
+      await tv2Api.suaKH(formKH.maKhachHang, {
+        ...formKH,
+        tenKhachHang: formKH.tenKhachHang.trim(),
+        diaChi: formKH.diaChi.trim(),
+        soDienThoai: formKH.soDienThoai.trim(),
+      });
       hienThongBao('Đã cập nhật khách hàng');
       taiDSKhachHang(tuKhoaKH);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Không thể cập nhật khách hàng', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không thể cập nhật khách hàng'), 'error');
     }
   };
 
@@ -105,7 +139,13 @@ export default function KhachHangDichVuPage() {
       resetKhachHang();
       taiDSKhachHang(tuKhoaKH);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Khách hàng đang có phiếu thuê, không thể xóa', 'error');
+      const msg = layThongBaoLoi(e, '');
+      hienThongBao(
+        laLoiKhoaNgoai(msg)
+          ? 'Khách hàng đang có phiếu thuê, không thể xóa'
+          : msg || 'Không thể xóa khách hàng',
+        'error'
+      );
     }
   };
 
@@ -125,21 +165,21 @@ export default function KhachHangDichVuPage() {
   };
 
   const xuLyThemDV = async () => {
-    if (!formDV.tenDichVu.trim() || formDV.giaDichVu === '') {
-      hienThongBao('Vui lòng nhập đủ tên và đơn giá dịch vụ', 'error');
+    if (!formDV.tenDichVu.trim() || formDV.giaDichVu === '' || Number(formDV.giaDichVu) < 0) {
+      hienThongBao('Vui lòng nhập tên dịch vụ và đơn giá hợp lệ (>= 0)', 'error');
       return;
     }
     try {
       const res = await tv2Api.themDichVu({
-        ...formDV,
         maDichVu: '',
+        tenDichVu: formDV.tenDichVu.trim(),
         giaDichVu: Number(formDV.giaDichVu),
       });
       hienThongBao(`Đã thêm dịch vụ mới (${res.data?.maDichVu || ''})`);
       resetDichVu();
       taiDSDichVu(tuKhoaDV);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Không thể thêm dịch vụ', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không thể thêm dịch vụ'), 'error');
     }
   };
 
@@ -148,12 +188,20 @@ export default function KhachHangDichVuPage() {
       hienThongBao('Chọn một dịch vụ trong bảng để sửa', 'error');
       return;
     }
+    if (!formDV.tenDichVu.trim() || formDV.giaDichVu === '' || Number(formDV.giaDichVu) < 0) {
+      hienThongBao('Tên dịch vụ không được trống và đơn giá phải >= 0', 'error');
+      return;
+    }
     try {
-      await tv2Api.suaDichVu(formDV.maDichVu, { ...formDV, giaDichVu: Number(formDV.giaDichVu) });
+      await tv2Api.suaDichVu(formDV.maDichVu, {
+        ...formDV,
+        tenDichVu: formDV.tenDichVu.trim(),
+        giaDichVu: Number(formDV.giaDichVu),
+      });
       hienThongBao('Đã cập nhật dịch vụ');
       taiDSDichVu(tuKhoaDV);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Không thể cập nhật dịch vụ', 'error');
+      hienThongBao(layThongBaoLoi(e, 'Không thể cập nhật dịch vụ'), 'error');
     }
   };
 
@@ -169,7 +217,13 @@ export default function KhachHangDichVuPage() {
       resetDichVu();
       taiDSDichVu(tuKhoaDV);
     } catch (e) {
-      hienThongBao(e.response?.data?.message || 'Dịch vụ đang được sử dụng, không thể xóa', 'error');
+      const msg = layThongBaoLoi(e, '');
+      hienThongBao(
+        laLoiKhoaNgoai(msg)
+          ? 'Dịch vụ đang được sử dụng, không thể xóa'
+          : msg || 'Không thể xóa dịch vụ',
+        'error'
+      );
     }
   };
 
@@ -534,6 +588,7 @@ export default function KhachHangDichVuPage() {
                 <label>Số điện thoại</label>
                 <input
                   value={formKH.soDienThoai}
+                  maxLength={15}
                   placeholder="VD: 0901234567"
                   onChange={(e) => setFormKH({ ...formKH, soDienThoai: e.target.value })}
                 />

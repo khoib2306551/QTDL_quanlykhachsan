@@ -51,7 +51,10 @@ public class ThuePhongService {
 
     @Transactional
     public ThuePhong taoPhieuThue(ThuePhongRequest req) {
-        if (req.getNgayNhan() != null && req.getNgayTra() != null && req.getNgayTra().isBefore(req.getNgayNhan())) {
+        if (req.getNgayNhan() == null || req.getNgayTra() == null) {
+            throw new IllegalArgumentException("Vui lòng nhập đầy đủ ngày nhận và ngày trả phòng");
+        }
+        if (req.getNgayTra().isBefore(req.getNgayNhan())) {
             throw new IllegalArgumentException("Ngày trả phòng phải lớn hơn hoặc bằng ngày nhận phòng");
         }
 
@@ -69,6 +72,15 @@ public class ThuePhongService {
         Phong phong = phongRepository.findById(req.getMaPhong())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng mã " + req.getMaPhong()));
 
+        String trangThaiMoi = (req.getTrangThai() != null && !req.getTrangThai().isBlank())
+                ? req.getTrangThai().trim()
+                : "Đã đặt";
+
+        // Không cho đặt trùng phòng đang sử dụng
+        if (!"Đã trả".equals(trangThaiMoi) && "Đang sử dụng".equals(phong.getTrangThai())) {
+            throw new IllegalArgumentException("Phòng " + phong.getSoPhong() + " hiện đang được sử dụng, vui lòng chọn phòng trống");
+        }
+
         ThuePhong tp = ThuePhong.builder()
                 .maThue(maThue)
                 .khachHang(kh)
@@ -76,7 +88,7 @@ public class ThuePhongService {
                 .ngayThue(req.getNgayThue() != null ? req.getNgayThue() : LocalDate.now())
                 .ngayNhan(req.getNgayNhan())
                 .ngayTra(req.getNgayTra())
-                .trangThai(req.getTrangThai() != null && !req.getTrangThai().isBlank() ? req.getTrangThai() : "Đã đặt")
+                .trangThai(trangThaiMoi)
                 .build();
 
         return thuePhongRepository.save(tp);
@@ -84,12 +96,25 @@ public class ThuePhongService {
 
     @Transactional
     public ThuePhong capNhatPhieuThue(String maThue, ThuePhongRequest req) {
+
         ThuePhong hienTai = thuePhongRepository.findById(maThue)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu thuê có mã " + maThue));
 
-        if (req.getNgayNhan() != null && req.getNgayTra() != null && req.getNgayTra().isBefore(req.getNgayNhan())) {
+        // Không cho sửa phiếu đã trả phòng
+        if ("Đã trả".equals(hienTai.getTrangThai())) {
+            throw new IllegalArgumentException("Phiếu thuê đã trả phòng, không thể chỉnh sửa");
+        }
+
+        // Kiểm tra ngày trả >= ngày nhận
+        LocalDate ngayNhanMoi = req.getNgayNhan() != null ? req.getNgayNhan() : hienTai.getNgayNhan();
+        LocalDate ngayTraMoi = req.getNgayTra() != null ? req.getNgayTra() : hienTai.getNgayTra();
+        if (ngayNhanMoi != null && ngayTraMoi != null && ngayTraMoi.isBefore(ngayNhanMoi)) {
             throw new IllegalArgumentException("Ngày trả phòng phải lớn hơn hoặc bằng ngày nhận phòng");
         }
+
+        String trangThaiMoi = (req.getTrangThai() != null && !req.getTrangThai().isBlank())
+                ? req.getTrangThai().trim()
+                : hienTai.getTrangThai();
 
         if (req.getMaKhachHang() != null && !req.getMaKhachHang().isBlank()) {
             KhachHang kh = khachHangRepository.findById(req.getMaKhachHang())
@@ -97,18 +122,30 @@ public class ThuePhongService {
             hienTai.setKhachHang(kh);
         }
 
+        // Nếu đổi sang phòng khác: kiểm tra phòng mới phải trống và trả phòng cũ về 'Trống'
         if (req.getMaPhong() != null && !req.getMaPhong().isBlank()) {
-            Phong phong = phongRepository.findById(req.getMaPhong())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng mã " + req.getMaPhong()));
-            hienTai.setPhong(phong);
+            Phong phongCu = hienTai.getPhong();
+            if (phongCu == null || !req.getMaPhong().equals(phongCu.getMaPhong())) {
+                Phong phongMoi = phongRepository.findById(req.getMaPhong())
+                        .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng mã " + req.getMaPhong()));
+
+                if (!"Đã trả".equals(trangThaiMoi) && "Đang sử dụng".equals(phongMoi.getTrangThai())) {
+                    throw new IllegalArgumentException("Phòng " + phongMoi.getSoPhong() + " hiện đang được sử dụng, vui lòng chọn phòng trống");
+                }
+
+                if (phongCu != null && !"Trống".equals(phongCu.getTrangThai())) {
+                    phongCu.setTrangThai("Trống");
+                    phongRepository.save(phongCu);
+                }
+
+                hienTai.setPhong(phongMoi);
+            }
         }
 
         if (req.getNgayThue() != null) hienTai.setNgayThue(req.getNgayThue());
-        if (req.getNgayNhan() != null) hienTai.setNgayNhan(req.getNgayNhan());
-        if (req.getNgayTra() != null) hienTai.setNgayTra(req.getNgayTra());
-        if (req.getTrangThai() != null && !req.getTrangThai().isBlank()) {
-            hienTai.setTrangThai(req.getTrangThai());
-        }
+        hienTai.setNgayNhan(ngayNhanMoi);
+        hienTai.setNgayTra(ngayTraMoi);
+        hienTai.setTrangThai(trangThaiMoi);
 
         return thuePhongRepository.save(hienTai);
     }
@@ -118,10 +155,12 @@ public class ThuePhongService {
         ThuePhong hienTai = thuePhongRepository.findById(maThue)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu thuê có mã " + maThue));
 
+        String trangThaiCu = hienTai.getTrangThai();
         Phong phong = hienTai.getPhong();
         thuePhongRepository.delete(hienTai);
 
-        if (phong != null && !"Trống".equals(phong.getTrangThai())) {
+        // Chỉ giải phóng phòng về 'Trống' nếu phiếu bị xóa đang giữ phòng ('Đã đặt' / 'Đang ở')
+        if (!"Đã trả".equals(trangThaiCu) && phong != null && !"Trống".equals(phong.getTrangThai())) {
             phong.setTrangThai("Trống");
             phongRepository.save(phong);
         }
