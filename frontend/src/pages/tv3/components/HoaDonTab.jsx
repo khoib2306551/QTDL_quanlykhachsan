@@ -128,6 +128,7 @@ export default function HoaDonTab({ onError }) {
                 <th className="w-[160px]">Mã hóa đơn</th>
                 <th className="w-[160px]">Mã SDDV</th>
                 <th className="w-[160px]">Ngày lập</th>
+                <th className="w-[200px]">Tiền phòng</th>
                 <th>Tổng tiền</th>
                 <th className="w-[110px]">Thao tác</th>
               </tr>
@@ -135,13 +136,13 @@ export default function HoaDonTab({ onError }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-4 text-center">
+                  <td colSpan={6} className="py-4 text-center">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : list.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-4 text-center text-slate-500">
+                  <td colSpan={6} className="py-4 text-center text-slate-500">
                     Không có hóa đơn nào.
                   </td>
                 </tr>
@@ -151,6 +152,7 @@ export default function HoaDonTab({ onError }) {
                     <td>{item.maHoaDon}</td>
                     <td>{item.maSddv}</td>
                     <td>{formatDate(item.ngayLapHoaDon)}</td>
+                    <td>{item.tienPhong == null ? '—' : formatMoney(item.tienPhong)}</td>
                     <td>{formatMoney(item.tongTien)}</td>
                     <td>
                       <button

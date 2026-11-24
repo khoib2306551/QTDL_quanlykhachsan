@@ -5,7 +5,7 @@ import com.khachsan.quanlykhachsan.dto.response.sddv.SuDungDichVuListResponse;
 import com.khachsan.quanlykhachsan.entity.SuDungDichVu;
 import com.khachsan.quanlykhachsan.exception.BusinessException;
 import com.khachsan.quanlykhachsan.exception.ResourceNotFoundException;
-import com.khachsan.quanlykhachsan.repository.InvoiceRepository;
+import com.khachsan.quanlykhachsan.repository.HoaDonRepository;
 import com.khachsan.quanlykhachsan.repository.SuDungDichVuRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class ServiceUsageService {
     private final SuDungDichVuRepository repo;
-    private final InvoiceRepository invoiceRepo;
+    private final HoaDonRepository hoaDonRepo;
 
     public PageResponse<SuDungDichVuListResponse> timKiem(String maSddv, int page, int size) {
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size,
@@ -30,8 +30,9 @@ public class ServiceUsageService {
     public void xoa(String maSddv) {
         SuDungDichVu s = repo.findById(maSddv).orElseThrow(() ->
                 new ResourceNotFoundException("Không tìm thấy lượt sử dụng dịch vụ " + maSddv));
-        if (invoiceRepo.existsByMaSddv(maSddv)) {
-            throw new BusinessException("Không thể xóa " + maSddv + " vì đang gắn với một hóa đơn");
+        String maThue = s.getThuePhong().getMaThue();
+        if (hoaDonRepo.demHoaDonCuaPhieuThue(maThue) > 0) {
+            throw new BusinessException("Không thể xóa " + maSddv + " vì phiếu thuê " + maThue + " đã có hóa đơn");
         }
         repo.delete(s);
     }

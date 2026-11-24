@@ -3,7 +3,7 @@ package com.khachsan.quanlykhachsan.controller;
 import com.khachsan.quanlykhachsan.dto.PageResponse;
 import com.khachsan.quanlykhachsan.dto.response.ApiResponse;
 import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
-import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
+import com.khachsan.quanlykhachsan.dto.response.hoadon.HoaDonListResponse;
 import com.khachsan.quanlykhachsan.service.InvoiceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ public class InvoiceController {
     private final InvoiceService service;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<Invoice>>> timKiem(
+    public ResponseEntity<ApiResponse<PageResponse<HoaDonListResponse>>> timKiem(
             @RequestParam(defaultValue = "") String maHoaDon,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
