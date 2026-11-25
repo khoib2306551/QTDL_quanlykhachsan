@@ -175,9 +175,7 @@ END$$
 
 -- 4. STORED PROCEDURE: Thống kê doanh thu theo Ngày, Tuần, Tháng, Quý, Năm
 
-DROP PROCEDURE IF EXISTS sp_ThongKeDoanhThu;
-
-DELIMITER $$
+DROP PROCEDURE IF EXISTS sp_ThongKeDoanhThu$$
 
 CREATE PROCEDURE sp_ThongKeDoanhThu(
     IN p_KieuThongKe VARCHAR(10),
@@ -314,7 +312,7 @@ BEGIN
 END //
 
 DELIMITER ;
------ LocLoaiPhong 
+-- --- LocLoaiPhong 
 DELIMITER //
 
 DROP PROCEDURE IF EXISTS sp_LocLoaiPhong //
@@ -355,7 +353,7 @@ BEGIN
 END //
 
 DELIMITER ;
-------------
+-- ----------
 
 
 
