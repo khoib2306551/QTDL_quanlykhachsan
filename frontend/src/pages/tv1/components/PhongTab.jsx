@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Save, Trash2, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Plus,
+  Save,
+  Trash2,
+  RotateCcw,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  FilterX,
+} from 'lucide-react';
 import { tv1Api } from '../../../services/api';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
 
@@ -8,6 +17,14 @@ const INITIAL_FORM = {
   soPhong: '',
   maLoai: '',
   trangThai: 'Trống',
+};
+
+const INITIAL_FILTERS = {
+  keyword: '',
+  maLoai: '',
+  trangThai: '',
+  giaTu: '',
+  giaDen: '',
 };
 
 const TRANG_THAI_OPTIONS = [
@@ -22,6 +39,9 @@ export default function PhongTab({ loaiPhongList, onError }) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
 
+  const [filterInputs, setFilterInputs] = useState(INITIAL_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(INITIAL_FILTERS);
+
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [originalData, setOriginalData] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -31,10 +51,10 @@ export default function PhongTab({ loaiPhongList, onError }) {
   const [deleteTarget, setDeleteTarget] = useState(null);
 
   const fetchPhong = useCallback(
-    async (page = 1) => {
+    async (page = 1, filters = INITIAL_FILTERS) => {
       setLoading(true);
       try {
-        const res = await tv1Api.layDSPhong(pageSize, page);
+        const res = await tv1Api.layDSPhong(pageSize, page, filters);
         const raw = res.data?.data ?? res.data;
 
         setList(raw?.content || []);
@@ -51,13 +71,44 @@ export default function PhongTab({ loaiPhongList, onError }) {
   );
 
   useEffect(() => {
-    fetchPhong(currentPage);
-  }, [fetchPhong, currentPage]);
+    fetchPhong(currentPage, appliedFilters);
+  }, [fetchPhong, currentPage, appliedFilters]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
+
+  const handleFilterInputChange = (e) => {
+    const { name, value } = e.target;
+    setFilterInputs((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleApplyFilter = (e) => {
+    e.preventDefault();
+    setNotice({ type: '', text: '' });
+
+    if (
+      filterInputs.giaTu !== '' &&
+      filterInputs.giaDen !== '' &&
+      Number(filterInputs.giaTu) > Number(filterInputs.giaDen)
+    ) {
+      setNotice({ type: 'error', text: 'Giá từ không được lớn hơn giá đến.' });
+      return;
+    }
+
+    setCurrentPage(1);
+    setAppliedFilters({ ...filterInputs });
+  };
+
+  const handleClearFilter = () => {
+    setNotice({ type: '', text: '' });
+    setFilterInputs(INITIAL_FILTERS);
+    setCurrentPage(1);
+    setAppliedFilters(INITIAL_FILTERS);
+  };
+
+  const hasActiveFilter = Object.values(appliedFilters).some((v) => String(v).trim() !== '');
 
   const handleSelectRow = async (item) => {
     setNotice({ type: '', text: '' });
@@ -106,7 +157,7 @@ export default function PhongTab({ loaiPhongList, onError }) {
       await tv1Api.themPhong(payload);
       setNotice({ type: 'success', text: 'Thêm phòng thành công!' });
       setFormData(INITIAL_FORM);
-      fetchPhong(1);
+      fetchPhong(1, appliedFilters);
     } catch (err) {
       onError(err, 'Thêm phòng thất bại.', setNotice);
     } finally {
@@ -135,7 +186,6 @@ export default function PhongTab({ loaiPhongList, onError }) {
       const payload = {
         soPhong: trimmedSoPhong,
         maLoai: formData.maLoai,
-        // Chỉ gửi trangThai khi người dùng đổi trạng thái, hoặc không sửa bất kỳ trường nào
         ...(isStatusChanged || !isOtherChanged ? { trangThai: formData.trangThai } : {}),
       };
 
@@ -147,7 +197,7 @@ export default function PhongTab({ loaiPhongList, onError }) {
         trangThai: formData.trangThai,
       });
       setNotice({ type: 'success', text: `Cập nhật phòng ${trimmedSoPhong} thành công!` });
-      fetchPhong(currentPage);
+      fetchPhong(currentPage, appliedFilters);
     } catch (err) {
       onError(err, 'Cập nhật phòng thất bại.', setNotice);
     } finally {
@@ -168,7 +218,7 @@ export default function PhongTab({ loaiPhongList, onError }) {
       setDeleteTarget(null);
       handleReset();
       setNotice({ type: 'success', text: `Đã xóa phòng ${deletedName} (${deletedId}).` });
-      fetchPhong(nextPage);
+      fetchPhong(nextPage, appliedFilters);
     } catch (err) {
       setDeleteTarget(null);
       onError(err, 'Xóa phòng thất bại.', setNotice);
@@ -303,6 +353,90 @@ export default function PhongTab({ loaiPhongList, onError }) {
       <div className="card-box">
         <div className="card-title">Danh sách phòng ({totalElements})</div>
 
+        <form
+          onSubmit={handleApplyFilter}
+          className="mb-3 grid grid-cols-1 gap-2 rounded-[3px] border border-slate-200 bg-slate-50 p-2.5 sm:grid-cols-2 lg:grid-cols-6"
+        >
+          <input
+            type="text"
+            name="keyword"
+            value={filterInputs.keyword}
+            onChange={handleFilterInputChange}
+            placeholder="Tìm số phòng..."
+            className="rounded-[3px] border border-slate-400 bg-white px-2.5 py-1.5 text-[13px]"
+          />
+
+          <select
+            name="maLoai"
+            value={filterInputs.maLoai}
+            onChange={handleFilterInputChange}
+            className="rounded-[3px] border border-slate-400 bg-white px-2.5 py-1.5 text-[13px]"
+          >
+            <option value="">-- Tất cả loại phòng --</option>
+            {loaiPhongList.map((lp) => (
+              <option key={lp.maLoai} value={lp.maLoai}>
+                {lp.tenLoai}
+              </option>
+            ))}
+          </select>
+
+          <select
+            name="trangThai"
+            value={filterInputs.trangThai}
+            onChange={handleFilterInputChange}
+            className="rounded-[3px] border border-slate-400 bg-white px-2.5 py-1.5 text-[13px]"
+          >
+            <option value="">-- Tất cả trạng thái --</option>
+            {TRANG_THAI_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+
+          <input
+            type="number"
+            name="giaTu"
+            min="0"
+            value={filterInputs.giaTu}
+            onChange={handleFilterInputChange}
+            placeholder="Giá từ (đ)..."
+            className="rounded-[3px] border border-slate-400 bg-white px-2.5 py-1.5 text-[13px]"
+          />
+
+          <input
+            type="number"
+            name="giaDen"
+            min="0"
+            value={filterInputs.giaDen}
+            onChange={handleFilterInputChange}
+            placeholder="Giá đến (đ)..."
+            className="rounded-[3px] border border-slate-400 bg-white px-2.5 py-1.5 text-[13px]"
+          />
+
+          <div className="flex gap-1.5">
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn inline-flex flex-1 items-center justify-center gap-1 disabled:opacity-50"
+            >
+              <Search size={14} /> Lọc
+            </button>
+
+            {hasActiveFilter && (
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleClearFilter}
+                title="Xóa bộ lọc"
+                className="btn btn-secondary inline-flex items-center justify-center gap-1 disabled:opacity-50"
+              >
+                <FilterX size={14} /> Xóa lọc
+              </button>
+            )}
+          </div>
+        </form>
+
         <div className="data-table-wrapper">
           <table className="data-table">
             <thead>
@@ -324,7 +458,9 @@ export default function PhongTab({ loaiPhongList, onError }) {
               ) : list.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-4 text-center text-slate-500">
-                    Chưa có dữ liệu phòng.
+                    {hasActiveFilter
+                      ? 'Không tìm thấy phòng phù hợp với điều kiện lọc.'
+                      : 'Chưa có dữ liệu phòng.'}
                   </td>
                 </tr>
               ) : (
