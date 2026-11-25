@@ -35,13 +35,29 @@ export const tv1Api = {
   xoaNV: (maNV) => apiClient.delete(`/nhan-vien/${maNV}`),
 
   // Loại phòng
-  layDSLoaiPhong: ( size = 10, page = 1) => apiClient.get('/loai-phong',{params:{size, page}}),
+  layDSLoaiPhong: ({ page = 1, size = 10, keyword = '', giaTu = '', giaDen = '', chiConPhongTrong = false } = {}) => {
+  const params = { page, size };
+  if (keyword?.trim()) params.keyword = keyword.trim();
+  if (giaTu !== '' && giaTu != null) params.giaTu = giaTu;
+  if (giaDen !== '' && giaDen != null) params.giaDen = giaDen;
+  if (chiConPhongTrong) params.chiConPhongTrong = true;
+
+  return apiClient.get('/loai-phong', { params });
+},
   themLoaiPhong: (data) => apiClient.post('/loai-phong', data),
   suaLoaiPhong: (maLoai, data) => apiClient.patch(`/loai-phong/${maLoai}`, data),
   xoaLoaiPhong: (maLoai) => apiClient.delete(`/loai-phong/${maLoai}`),
 
   // Phòng
-  layDSPhong:( size = 10, page = 1) => apiClient.get('/phong',{params:{size, page}}),
+  layDSPhong: (size = 10, page = 1, filters = {}) => {
+        const params = { page, size };
+        if (filters.keyword?.trim()) params.keyword = filters.keyword.trim();
+        if (filters.maLoai) params.maLoai = filters.maLoai;
+        if (filters.trangThai) params.trangThai = filters.trangThai;
+        if (filters.giaTu !== '' && filters.giaTu != null) params.giaTu = filters.giaTu;
+        if (filters.giaDen !== '' && filters.giaDen != null) params.giaDen = filters.giaDen;
+        return apiClient.get('/phong', { params });
+},
   chiTietPhong: (maPhong) => apiClient.get(`/phong/${maPhong}`),
   themPhong: (data) => apiClient.post('/phong', data),
   suaPhong: (maPhong, data) => apiClient.patch(`/phong/${maPhong}`, data),
