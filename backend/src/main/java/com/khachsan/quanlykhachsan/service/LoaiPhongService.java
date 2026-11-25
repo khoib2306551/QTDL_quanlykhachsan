@@ -3,6 +3,7 @@ package com.khachsan.quanlykhachsan.service;
 import com.khachsan.quanlykhachsan.dto.PageResponse;
 import com.khachsan.quanlykhachsan.dto.request.loaiphong.RoomTypeRequest;
 import com.khachsan.quanlykhachsan.dto.response.loaiphong.RoomTypeResponse;
+import com.khachsan.quanlykhachsan.dto.response.phong.LoaiPhongFilterProjection;
 import com.khachsan.quanlykhachsan.entity.LoaiPhong;
 import com.khachsan.quanlykhachsan.exception.BusinessException;
 import com.khachsan.quanlykhachsan.exception.MissingParamException;
@@ -11,13 +12,12 @@ import com.khachsan.quanlykhachsan.repository.LoaiPhongRepository;
 import com.khachsan.quanlykhachsan.repository.PhongRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -26,13 +26,52 @@ public class LoaiPhongService {
 
     private final LoaiPhongRepository loaiPhongRepository;
     private final PhongRepository phongRepository;
-    public PageResponse<RoomTypeResponse> getPageRoomType(int page, int size) {
-        int pageIndex = Math.max(page - 1, 0);
-        Pageable pageable = PageRequest.of(pageIndex, size, Sort.by("maLoai").ascending());
+    @Transactional(readOnly = true)
+    public PageResponse<RoomTypeResponse> getPageRoomType(
+            String keyword,
+            BigDecimal giaTu,
+            BigDecimal giaDen,
+            Boolean chiConPhongTrong,
+            int page,
+            int size
+    ) {
+        if (giaTu != null && giaDen != null && giaTu.compareTo(giaDen) > 0) {
+            throw new BusinessException("Giá từ không được lớn hơn giá đến");
+        }
 
-        Page<LoaiPhong> nhanVienPage = this.loaiPhongRepository.findAll(pageable);
+        int validPage = Math.max(page, 1);
+        int validSize = Math.max(size, 1);
+        int pageIndex = validPage - 1;
 
-        Page<RoomTypeResponse> dtoPage = nhanVienPage.map(RoomTypeResponse::fromEntity);
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+
+        List<LoaiPhongFilterProjection> rows = this.loaiPhongRepository.filterLoaiPhongByProcedure(
+                cleanKeyword,
+                giaTu,
+                giaDen,
+                chiConPhongTrong,
+                validPage,
+                validSize
+        );
+
+        long totalElements = (!rows.isEmpty() && rows.get(0).getTotalElements() != null)
+                ? rows.get(0).getTotalElements()
+                : rows.size();
+
+        List<RoomTypeResponse> content = rows.stream()
+                .map(r -> RoomTypeResponse.builder()
+                        .maLoai(r.getMaLoai())
+                        .tenLoai(r.getTenLoai())
+                        .giaPhong(r.getGiaPhong())
+                        .moTa(r.getMoTa())
+                        .tongSoPhong(r.getTongSoPhong())
+                        .soPhongTrong(r.getSoPhongTrong())
+                        .build())
+                .toList();
+
+        Pageable pageable = PageRequest.of(pageIndex, validSize);
+        Page<RoomTypeResponse> dtoPage = new PageImpl<>(content, pageable, totalElements);
+
         return PageResponse.from(dtoPage);
     }
 

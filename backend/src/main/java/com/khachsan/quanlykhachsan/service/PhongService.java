@@ -3,6 +3,7 @@ package com.khachsan.quanlykhachsan.service;
 import com.khachsan.quanlykhachsan.dto.PageResponse;
 import com.khachsan.quanlykhachsan.dto.request.phong.PhongRequest;
 import com.khachsan.quanlykhachsan.dto.response.phong.PhongDetailResponse;
+import com.khachsan.quanlykhachsan.dto.response.phong.PhongFilterProjection;
 import com.khachsan.quanlykhachsan.dto.response.phong.PhongListResponse;
 import com.khachsan.quanlykhachsan.entity.LoaiPhong;
 import com.khachsan.quanlykhachsan.entity.Phong;
@@ -11,13 +12,11 @@ import com.khachsan.quanlykhachsan.exception.ResourceNotFoundException;
 import com.khachsan.quanlykhachsan.repository.PhongRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,13 +29,53 @@ public class PhongService {
     private final PhongRepository phongRepository;
     private final LoaiPhongService loaiPhongService;
     private final ArrayList<String> status = new ArrayList<>(List.of("Trống", "Đang sử dụng"));
-    public PageResponse<PhongListResponse> getPagePhong(int page, int size){
-        int pageIndex = Math.max(page - 1, 0);
-        Pageable pageable = PageRequest.of(pageIndex, size, Sort.by("maPhong").ascending());
+    @Transactional(readOnly = true)
+    public PageResponse<PhongListResponse> getPagePhong(
+            String keyword,
+            String maLoai,
+            String trangThai,
+            BigDecimal giaTu,
+            BigDecimal giaDen,
+            int page,
+            int size
+    ) {
+        if (giaTu != null && giaDen != null && giaTu.compareTo(giaDen) > 0) {
+            throw new BusinessException("Giá từ không được lớn hơn giá đến");
+        }
 
-        Page<Phong> nhanVienPage = this.phongRepository.findAll(pageable);
+        int validPage = Math.max(page, 1);
+        int validSize = Math.max(size, 1);
+        int pageIndex = validPage - 1;
 
-        Page<PhongListResponse> dtoPage = nhanVienPage.map(PhongListResponse::fromEntity);
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        String cleanMaLoai = (maLoai != null && !maLoai.isBlank()) ? maLoai.trim() : null;
+        String cleanTrangThai = (trangThai != null && !trangThai.isBlank()) ? trangThai.trim() : null;
+
+        List<PhongFilterProjection> rows = this.phongRepository.timKiemPhongByProcedure(
+                cleanKeyword,
+                cleanMaLoai,
+                cleanTrangThai,
+                giaTu,
+                giaDen,
+                validPage,
+                validSize
+        );
+
+        long totalElements = rows.isEmpty() ? 0L : rows.get(0).getTotalElements();
+
+        List<PhongListResponse> content = rows.stream()
+                .map(r -> PhongListResponse.builder()
+                        .maPhong(r.getMaPhong())
+                        .soPhong(r.getSoPhong())
+                        .tenLoai(r.getTenLoai())
+                        .giaPhong(r.getGiaPhong())
+                        .trangThai(r.getTrangThai())
+                        .build())
+                .toList();
+
+        Pageable pageable = PageRequest.of(pageIndex, validSize);
+        Page<PhongListResponse> dtoPage = new PageImpl<>(content, pageable, totalElements);
+
         return PageResponse.from(dtoPage);
     }
 

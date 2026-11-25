@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/phong")
 @RequiredArgsConstructor
@@ -19,10 +21,18 @@ public class PhongController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<PhongListResponse>>> getPageRooms(
-            @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int size
-    ){
-        PageResponse<PhongListResponse> response = this.phongService.getPagePhong(page,size);
-        return ResponseEntity.ok(ApiResponse.success("success",response));
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String maLoai,
+            @RequestParam(required = false) String trangThai,
+            @RequestParam(required = false) BigDecimal giaTu,
+            @RequestParam(required = false) BigDecimal giaDen,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<PhongListResponse> response = this.phongService.getPagePhong(
+                keyword, maLoai, trangThai, giaTu, giaDen, page, size
+        );
+        return ResponseEntity.ok(ApiResponse.success("success", response));
     }
 
     @GetMapping("/{maPhong}")
