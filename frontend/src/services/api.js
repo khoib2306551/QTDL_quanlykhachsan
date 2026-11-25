@@ -79,20 +79,20 @@ export const tv2Api = {
 
 // SỬ DỤNG DỊCH VỤ & HÓA ĐƠN
 export const tv3Api = {
-  // Chi tiết Sử dụng dịch vụ
-  layDSSDDV: (maThue = '') => apiClient.get('/su-dung-dich-vu', { params: { maThue } }),
-  chiTietSDDV: (maSDDV) => apiClient.get(`/su-dung-dich-vu/${maSDDV}`),
-  themSDDV: (data) => apiClient.post('/su-dung-dich-vu', data),
-  suaSDDV: (maSDDV, data) => apiClient.put(`/su-dung-dich-vu/${maSDDV}`, data),
-  xoaSDDV: (maSDDV) => apiClient.delete(`/su-dung-dich-vu/${maSDDV}`),
-
-  // Bảng chính Hóa đơn
-  layDSHoaDon: (params) => apiClient.get('/hoa-don', { params }),
-  chiTietHoaDon: (maHD) => apiClient.get(`/hoa-don/${maHD}`),
-  tinhTongTien: (maThue) => apiClient.get(`/hoa-don/tinh-tong-tien/${maThue}`),
+  // Hóa đơn
+  layDSHoaDon: (maHoaDon = '', size = 10, page = 1) =>
+    apiClient.get('/hoa-don', { params: { maHoaDon, size, page } }),
+  xoaHoaDon: (maHoaDon) => apiClient.delete(`/hoa-don/${maHoaDon}`),
   themHoaDon: (data) => apiClient.post('/hoa-don', data),
-  suaHoaDon: (maHD, data) => apiClient.put(`/hoa-don/${maHD}`, data),
-  xoaHoaDon: (maHD) => apiClient.delete(`/hoa-don/${maHD}`),
+  layDichVuTheoThue: (maThue) => apiClient.get(`/hoa-don/dich-vu/${maThue}`),
+  tinhTongTien: (maThue) => apiClient.get(`/hoa-don/tinh-tong-tien/${maThue}`),
+
+  // Sử dụng dịch vụ
+  layDSSDDV: (maSddv = '', size = 10, page = 1) =>
+    apiClient.get('/su-dung-dich-vu', { params: { maSddv, size, page } }),
+  xoaSDDV: (maSDDV) => apiClient.delete(`/su-dung-dich-vu/${maSDDV}`),
+  themSDDV: (data) => apiClient.post('/su-dung-dich-vu', data),
+  suaSDDV: (maSddv, data) => apiClient.put(`/su-dung-dich-vu/${maSddv}`, data),
 };
 
 

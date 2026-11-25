@@ -1,67 +1,116 @@
 package com.khachsan.quanlykhachsan.service;
 
-import com.khachsan.quanlykhachsan.dto.request.ServiceUsageRequest;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
-import com.khachsan.quanlykhachsan.entity.invoice.ServiceUsage;
-import com.khachsan.quanlykhachsan.repository.ServiceUsageRepository;
-import com.khachsan.quanlykhachsan.repository.InvoiceRepository;
+import com.khachsan.quanlykhachsan.dto.PageResponse;
+import com.khachsan.quanlykhachsan.dto.response.sddv.SuDungDichVuListResponse;
+import com.khachsan.quanlykhachsan.entity.SuDungDichVu;
+import com.khachsan.quanlykhachsan.exception.BusinessException;
+import com.khachsan.quanlykhachsan.exception.ResourceNotFoundException;
+import com.khachsan.quanlykhachsan.repository.HoaDonRepository;
+import com.khachsan.quanlykhachsan.repository.SuDungDichVuRepository;
+import com.khachsan.quanlykhachsan.entity.DichVu;
+import com.khachsan.quanlykhachsan.entity.ThuePhong;
+import com.khachsan.quanlykhachsan.repository.DichVuRepository;
+import com.khachsan.quanlykhachsan.repository.ThuePhongRepository;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ServiceUsageService {
-    private final ServiceUsageRepository repo;
-    private final InvoiceRepository invoiceRepo;
+    private final SuDungDichVuRepository repo;
+    private final HoaDonRepository hoaDonRepo;
+    private final ThuePhongRepository thueRepo;
+    private final DichVuRepository dichVuRepo;
 
-    public List<ServiceUsage> layDanhSach(String maThue) {
-        if (maThue == null || maThue.isBlank()) {
-            return repo.findAll();
-        }
-        return repo.findByMaThue(maThue);
+    public record SddvRequest(String maThue, String maDichVu, Integer soLuong, LocalDate ngaySuDung) {
     }
 
-    public ServiceUsage layChiTiet(String maSddv) {
-        return repo.findById(maSddv).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy SDDV " + maSddv));
+    public PageResponse<SuDungDichVuListResponse> timKiem(String maSddv, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size,
+                Sort.by(Sort.Order.desc("ngaySuDung"), Sort.Order.asc("maSDDV")));
+        return PageResponse.from(
+                repo.findByMaSDDVContainingIgnoreCase(maSddv.trim(), pageable)
+                        .map(SuDungDichVuListResponse::fromEntity));
     }
 
     public void xoa(String maSddv) {
-        layChiTiet(maSddv);
-        if (invoiceRepo.existsByMaSddv(maSddv)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "SDDV " + maSddv + " đang gắn với một hóa đơn");
+        SuDungDichVu s = repo.findById(maSddv).orElseThrow(() ->
+                new ResourceNotFoundException("Không tìm thấy lượt sử dụng dịch vụ " + maSddv));
+        String maThue = s.getThuePhong().getMaThue();
+        if (hoaDonRepo.demHoaDonCuaPhieuThue(maThue) > 0) {
+            throw new BusinessException("Không thể xóa " + maSddv + " vì phiếu thuê " + maThue + " đã có hóa đơn");
         }
-        repo.deleteById(maSddv);
+        repo.delete(s);
     }
-    
-    public ServiceUsage them(ServiceUsageRequest req) {
+
+    @Transactional
+    public SuDungDichVuListResponse them(SddvRequest req) {
+        if (req.maThue() == null || req.maThue().isBlank()) {
+            throw new BusinessException("Vui lòng chọn phiếu thuê");
+        }
+        ThuePhong tp = thueRepo.findById(req.maThue().trim()).orElseThrow(() ->
+                new ResourceNotFoundException("Không tìm thấy phiếu thuê " + req.maThue()));
+        DichVu dv = kiemTra(tp, req);
+
+        SuDungDichVu s = SuDungDichVu.builder()
+                .maSDDV(taoMaTuDong())
+                .thuePhong(tp)
+                .dichVu(dv)
+                .soLuong(req.soLuong())
+                .ngaySuDung(req.ngaySuDung())
+                .build();
+        return SuDungDichVuListResponse.fromEntity(repo.save(s));
+    }
+
+    @Transactional
+    public SuDungDichVuListResponse sua(String maSddv, SddvRequest req) {
+        SuDungDichVu s = repo.findById(maSddv).orElseThrow(() ->
+                new ResourceNotFoundException("Không tìm thấy lượt sử dụng dịch vụ " + maSddv));
+        DichVu dv = kiemTra(s.getThuePhong(), req);
+
+        s.setDichVu(dv);
+        s.setSoLuong(req.soLuong());
+        s.setNgaySuDung(req.ngaySuDung());
+        return SuDungDichVuListResponse.fromEntity(repo.save(s));
+    }
+
+    // Kiểm tra dùng chung cho thêm và sửa, trả về dịch vụ được chọn
+    private DichVu kiemTra(ThuePhong tp, SddvRequest req) {
+        if (hoaDonRepo.demHoaDonCuaPhieuThue(tp.getMaThue()) > 0) {
+            throw new BusinessException("Phiếu thuê " + tp.getMaThue() + " đã có hóa đơn, không thể thêm/sửa dịch vụ");
+        }
+        if (req.maDichVu() == null || req.maDichVu().isBlank()) {
+            throw new BusinessException("Vui lòng chọn dịch vụ");
+        }
+        DichVu dv = dichVuRepo.findById(req.maDichVu().trim()).orElseThrow(() ->
+                new ResourceNotFoundException("Không tìm thấy dịch vụ " + req.maDichVu()));
+        if (req.soLuong() == null || req.soLuong() < 1) {
+            throw new BusinessException("Số lượng phải lớn hơn 0");
+        }
+        LocalDate ngay = req.ngaySuDung();
+        if (ngay == null) {
+            throw new BusinessException("Vui lòng chọn ngày sử dụng");
+        }
+        if (ngay.isBefore(tp.getNgayNhan()) || ngay.isAfter(tp.getNgayTra())) {
+            throw new BusinessException("Ngày sử dụng phải nằm trong thời gian lưu trú ("
+                    + tp.getNgayNhan() + " đến " + tp.getNgayTra() + ")");
+        }
+        return dv;
+    }
+
+    private String taoMaTuDong() {
         Long max = repo.layMaSoLonNhat();
-        ServiceUsage s = new ServiceUsage();
-        s.setMaSddv(String.format("SD%02d", (max == null ? 0 : max) + 1));
-        s.setMaThue(req.getMaThue());
-        s.setMaDichVu(req.getMaDichVu());
-        s.setSoLuong(req.getSoLuong());
-        s.setNgaySuDung(req.getNgaySuDung());
-        return luu(s);
-    }
-
-    public ServiceUsage sua(String maSddv, ServiceUsageRequest req) {
-        ServiceUsage s = layChiTiet(maSddv);
-        s.setMaDichVu(req.getMaDichVu());
-        s.setSoLuong(req.getSoLuong());
-        s.setNgaySuDung(req.getNgaySuDung());
-        return luu(s);
-    }
-
-    private ServiceUsage luu(ServiceUsage s) {
-        try {
-            return repo.saveAndFlush(s);
-        } catch (DataIntegrityViolationException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã thuê hoặc mã dịch vụ không tồn tại");
+        long next = (max == null ? 0 : max) + 1;
+        String ma = String.format("SD%02d", next);
+        while (repo.existsById(ma)) {
+            next++;
+            ma = String.format("SD%02d", next);
         }
+        return ma;
     }
 }
-

@@ -1,16 +1,16 @@
 package com.khachsan.quanlykhachsan.controller;
 
-import com.khachsan.quanlykhachsan.dto.response.InvoiceDetailResponse;
+import com.khachsan.quanlykhachsan.dto.PageResponse;
+import com.khachsan.quanlykhachsan.dto.response.ApiResponse;
 import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
-import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
+import com.khachsan.quanlykhachsan.dto.response.hoadon.HoaDonListResponse;
 import com.khachsan.quanlykhachsan.service.InvoiceService;
-import com.khachsan.quanlykhachsan.dto.request.InvoiceRequest;
-import com.khachsan.quanlykhachsan.dto.request.InvoiceUpdateRequest;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
-import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import com.khachsan.quanlykhachsan.dto.response.sddv.SuDungDichVuListResponse;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/hoa-don")
@@ -18,37 +18,34 @@ import java.util.List;
 public class InvoiceController {
     private final InvoiceService service;
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<PageResponse<HoaDonListResponse>>> timKiem(
+            @RequestParam(defaultValue = "") String maHoaDon,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.success("success", service.timKiem(maHoaDon, page, size)));
+    }
+
+    @DeleteMapping("/{maHoaDon}")
+    public ResponseEntity<ApiResponse<Void>> xoa(@PathVariable String maHoaDon) {
+        service.xoa(maHoaDon);
+        return ResponseEntity.ok(ApiResponse.success("success"));
+    }
+
     @GetMapping("/tinh-tong-tien/{maThue}")
     public TongTienResponse tinhTongTien(@PathVariable String maThue) {
         return service.tinhTongTien(maThue);
     }
 
-    @GetMapping
-    public List<Invoice> timKiem(@RequestParam(defaultValue = "") String maHoaDon,
-                                @RequestParam(defaultValue = "") String maKhachHang,
-                                @RequestParam(defaultValue = "") String ngayLap) {
-        return service.timKiem(maHoaDon, maKhachHang, ngayLap);
-    }
-
-    @GetMapping("/{maHoaDon}")
-    public InvoiceDetailResponse layChiTiet(@PathVariable String maHoaDon) {
-        return service.layChiTiet(maHoaDon);
+    @GetMapping("/dich-vu/{maThue}")
+    public ResponseEntity<ApiResponse<List<SuDungDichVuListResponse>>> layDichVu(@PathVariable String maThue) {
+        return ResponseEntity.ok(ApiResponse.success("success", service.layDichVuTheoThue(maThue)));
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public InvoiceDetailResponse them(@Valid @RequestBody InvoiceRequest req) {
-        return service.them(req);
-    }
-
-    @PutMapping("/{maHoaDon}")
-    public InvoiceDetailResponse sua(@PathVariable String maHoaDon,
-                                    @Valid @RequestBody InvoiceUpdateRequest req) {
-        return service.sua(maHoaDon, req);
-    }
-
-    @DeleteMapping("/{maHoaDon}")
-    public void xoa(@PathVariable String maHoaDon) {
-        service.xoa(maHoaDon);
+    public ResponseEntity<ApiResponse<HoaDonListResponse>> them(
+            @RequestBody InvoiceService.HoaDonRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("success", service.them(req)));
     }
 }

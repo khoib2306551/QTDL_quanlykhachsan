@@ -1,101 +1,125 @@
 package com.khachsan.quanlykhachsan.service;
 
-import com.khachsan.quanlykhachsan.dto.response.InvoiceDetailResponse;
+import com.khachsan.quanlykhachsan.dto.PageResponse;
 import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
-import com.khachsan.quanlykhachsan.entity.invoice.Invoice;
-import com.khachsan.quanlykhachsan.entity.invoice.ServiceUsage;
-import com.khachsan.quanlykhachsan.repository.InvoiceRepository;
-import com.khachsan.quanlykhachsan.repository.ServiceUsageRepository;
-import com.khachsan.quanlykhachsan.dto.request.InvoiceRequest;
-import com.khachsan.quanlykhachsan.dto.request.InvoiceUpdateRequest;
-import org.springframework.dao.DataIntegrityViolationException;
+import com.khachsan.quanlykhachsan.dto.response.hoadon.HoaDonListResponse;
+import com.khachsan.quanlykhachsan.entity.HoaDon;
+import com.khachsan.quanlykhachsan.entity.SuDungDichVu;
+import com.khachsan.quanlykhachsan.entity.ThuePhong;
+import com.khachsan.quanlykhachsan.exception.ResourceNotFoundException;
+import com.khachsan.quanlykhachsan.repository.HoaDonRepository;
+import com.khachsan.quanlykhachsan.dto.response.sddv.SuDungDichVuListResponse;
+import com.khachsan.quanlykhachsan.repository.SuDungDichVuRepository;
+import com.khachsan.quanlykhachsan.exception.BusinessException;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-import java.math.BigDecimal;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
 public class InvoiceService {
-    private final ServiceUsageRepository usageRepo;
-    private final InvoiceRepository repo;
+    private final HoaDonRepository repo;
+    private final SuDungDichVuRepository sddvRepo;
+    public record HoaDonRequest(String maThue, LocalDate ngayLapHoaDon) {
+    }
+
+    public PageResponse<HoaDonListResponse> timKiem(String maHoaDon, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size,
+                Sort.by(Sort.Order.desc("ngayLapHoaDon"), Sort.Order.asc("maHoaDon")));
+        return PageResponse.from(
+                repo.findByMaHoaDonContainingIgnoreCase(maHoaDon.trim(), pageable)
+                        .map(this::toListResponse));
+    }
+
+    private HoaDonListResponse toListResponse(HoaDon hd) {
+        SuDungDichVu sd = hd.getSuDungDichVu();
+        if (sd == null) {
+            return new HoaDonListResponse(hd.getMaHoaDon(), null, null, null, null, null,
+                    hd.getNgayLapHoaDon(), null, null, hd.getTongTien());
+        }
+        ThuePhong tp = sd.getThuePhong();
+        HoaDonRepository.ChiPhiThue cp = repo.layChiPhiThue(tp.getMaThue());
+        return new HoaDonListResponse(
+                hd.getMaHoaDon(),
+                sd.getMaSDDV(),
+                tp.getMaThue(),
+                tp.getKhachHang().getTenKhachHang(),
+                tp.getPhong().getSoPhong(),
+                cp.getSoNgay(),
+                hd.getNgayLapHoaDon(),
+                cp.getGiaPhong().multiply(BigDecimal.valueOf(cp.getSoNgay())),
+                cp.getTienDichVu(),
+                hd.getTongTien());
+    }
+
+    public void xoa(String maHoaDon) {
+        HoaDon hd = repo.findById(maHoaDon).orElseThrow(() ->
+                new ResourceNotFoundException("Không tìm thấy hóa đơn " + maHoaDon));
+        repo.delete(hd);
+    }
 
     public TongTienResponse tinhTongTien(String maThue) {
         BigDecimal tienPhong = repo.tinhTienPhong(maThue);
         if (tienPhong == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy phiếu thuê " + maThue);
+            throw new ResourceNotFoundException("Không tìm thấy phiếu thuê " + maThue);
         }
         BigDecimal tienDichVu = repo.tinhTienDichVu(maThue);
         return new TongTienResponse(maThue, tienPhong, tienDichVu, tienPhong.add(tienDichVu));
     }
 
-    public List<Invoice> timKiem(String maHoaDon, String maKhachHang, String ngayLap) {
-        return repo.timKiem(maHoaDon.trim(), maKhachHang.trim(), ngayLap.trim());
+    public List<SuDungDichVuListResponse> layDichVuTheoThue(String maThue) {
+        return sddvRepo.findByThuePhong_MaThueOrderByNgaySuDungAsc(maThue).stream()
+                .map(SuDungDichVuListResponse::fromEntity)
+                .toList();
     }
 
-    public InvoiceDetailResponse layChiTiet(String maHoaDon) {
-        Invoice hd = repo.findById(maHoaDon).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hóa đơn " + maHoaDon));
-
-        String maThue = null;
-        List<ServiceUsage> dsDichVu = List.of();
-        if (hd.getMaSddv() != null) {
-            ServiceUsage sd = usageRepo.findById(hd.getMaSddv()).orElse(null);
-            if (sd != null) {
-                maThue = sd.getMaThue();
-                dsDichVu = usageRepo.findByMaThue(maThue);
-            }
+    @Transactional
+    public HoaDonListResponse them(HoaDonRequest req) {
+        if (req.maThue() == null || req.maThue().isBlank()) {
+            throw new BusinessException("Vui lòng chọn phiếu thuê");
         }
-        return new InvoiceDetailResponse(hd.getMaHoaDon(), hd.getMaSddv(), maThue,
-                hd.getNgayLapHoaDon(), hd.getTongTien(), dsDichVu);
+        String maThue = req.maThue().trim();
+
+        // Tự tính tổng tiền = tiền phòng + tiền dịch vụ (báo 404 nếu không có phiếu thuê)
+        TongTienResponse tien = tinhTongTien(maThue);
+
+        if (repo.demHoaDonCuaPhieuThue(maThue) > 0) {
+            throw new BusinessException("Phiếu thuê " + maThue + " đã có hóa đơn");
+        }
+
+        List<SuDungDichVu> dsDichVu = sddvRepo.findByThuePhong_MaThueOrderByNgaySuDungAsc(maThue);
+        if (dsDichVu.isEmpty()) {
+            throw new BusinessException("Phiếu thuê " + maThue + " chưa sử dụng dịch vụ nào, chưa thể lập hóa đơn");
+        }
+
+        LocalDate ngayTra = dsDichVu.get(0).getThuePhong().getNgayTra();
+        if (req.ngayLapHoaDon() != null && !req.ngayLapHoaDon().equals(ngayTra)) {
+            throw new BusinessException("Ngày lập hóa đơn phải trùng với ngày trả phòng (" + ngayTra + ")");
+        }
+
+        HoaDon hd = HoaDon.builder()
+                .maHoaDon(taoMaTuDong())
+                .suDungDichVu(dsDichVu.get(0))
+                .ngayLapHoaDon(ngayTra)
+                .tongTien(tien.tongTien())
+                .build();
+        return toListResponse(repo.save(hd));
     }
 
-    public InvoiceDetailResponse them(InvoiceRequest req) {
-        ServiceUsage sd = usageRepo.findById(req.getMaSddv()).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã SDDV không tồn tại: " + req.getMaSddv()));
-
+    private String taoMaTuDong() {
         Long max = repo.layMaSoLonNhat();
-        Invoice hd = new Invoice();
-        hd.setMaHoaDon(String.format("HD%02d", (max == null ? 0 : max) + 1));
-        hd.setMaSddv(req.getMaSddv());
-        hd.setNgayLapHoaDon(req.getNgayLapHoaDon() != null ? req.getNgayLapHoaDon() : LocalDate.now());
-        hd.setTongTien(tinhTongTien(sd.getMaThue()).tongTien());
-
-        try {
-            repo.saveAndFlush(hd);
-        } catch (DataIntegrityViolationException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dữ liệu hóa đơn không hợp lệ");
+        long next = (max == null ? 0 : max) + 1;
+        String ma = String.format("HD%02d", next);
+        while (repo.existsById(ma)) {
+            next++;
+            ma = String.format("HD%02d", next);
         }
-        return layChiTiet(hd.getMaHoaDon());
-    }
-
-    public InvoiceDetailResponse sua(String maHoaDon, InvoiceUpdateRequest req) {
-        Invoice hd = repo.findById(maHoaDon).orElseThrow(() ->
-            new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hóa đơn " + maHoaDon));
-
-        if (req.getNgayLapHoaDon() != null) {
-            hd.setNgayLapHoaDon(req.getNgayLapHoaDon());
-        }
-        if (req.getMaSddv() != null && !req.getMaSddv().isBlank()) {
-            ServiceUsage sd = usageRepo.findById(req.getMaSddv()).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mã SDDV không tồn tại: " + req.getMaSddv()));
-            hd.setMaSddv(req.getMaSddv());
-            hd.setTongTien(tinhTongTien(sd.getMaThue()).tongTien());
-        }
-        if (req.getTongTien() != null) {
-            hd.setTongTien(req.getTongTien());
-        }
-        repo.saveAndFlush(hd);
-        return layChiTiet(maHoaDon);
-    }
-
-    public void xoa(String maHoaDon) {
-        if (!repo.existsById(maHoaDon)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy hóa đơn " + maHoaDon);
-        }
-        repo.deleteById(maHoaDon);
+        return ma;
     }
 }
