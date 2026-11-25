@@ -5,6 +5,7 @@ import com.khachsan.quanlykhachsan.dto.request.NhanVienRequest;
 import com.khachsan.quanlykhachsan.dto.response.auth.UserInfo;
 import com.khachsan.quanlykhachsan.entity.NhanVien;
 import com.khachsan.quanlykhachsan.exception.AuthException;
+import com.khachsan.quanlykhachsan.exception.BusinessException;
 import com.khachsan.quanlykhachsan.exception.ResourceNotFoundException;
 import com.khachsan.quanlykhachsan.repository.NhanVienRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,10 +58,9 @@ public class NhanVienService {
     public NhanVien createNhanVien(String hoTen, String taiKhoan, String rawMatKhau, LocalDate ngaySinh, String soDienThoai ){
 
         if(this.nhanVienRepository.existsByTaiKhoan(taiKhoan)){
-            throw new AuthException("Tên đăng nhập đã tồn tại ");
+            throw new BusinessException("Tên đăng nhập đã tồn tại ");
         }
-        String shortUuid = UUID.randomUUID().toString().replace("-", "").substring(0, 10).toUpperCase();
-
+        String shortUuid = "NV-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
         NhanVien nhanVien = NhanVien.builder()
                 .maNhanVien(shortUuid)
                 .taiKhoan(taiKhoan)
@@ -98,7 +98,7 @@ public class NhanVienService {
         if (request.getTaiKhoan() != null && !request.getTaiKhoan().isBlank()) {
             String newTaiKhoan = request.getTaiKhoan().trim();
             if (!newTaiKhoan.equals(nv.getTaiKhoan()) && this.nhanVienRepository.existsByTaiKhoan(newTaiKhoan)) {
-                throw new AuthException("Tài khoản đã tồn tại");
+                throw new BusinessException("Tài khoản đã tồn tại");
             }
             nv.setTaiKhoan(newTaiKhoan);
         }
@@ -128,7 +128,7 @@ public class NhanVienService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy nhân viên với mã: " + maNhanVien));
 
         if (nv.getMaNhanVien().equals(ownerID)) {
-                throw new AuthException("Không thể tự xóa tài khoản đang đăng nhập");
+                throw new BusinessException("Không thể tự xóa tài khoản đang đăng nhập");
         }
 
         try {
