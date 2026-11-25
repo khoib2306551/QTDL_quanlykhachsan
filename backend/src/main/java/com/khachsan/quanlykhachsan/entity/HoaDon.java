@@ -23,6 +23,10 @@ public class HoaDon {
     @JoinColumn(name = "MaSDDV") // Nullable theo đúng schema SQL
     private SuDungDichVu suDungDichVu;
 
+    @ManyToOne
+    @JoinColumn(name = "MaNhanVien", nullable = false)
+    private NhanVien nhanVien;
+
     @Column(name = "NgayLapHoaDon", nullable = false)
     private LocalDate ngayLapHoaDon;
 
