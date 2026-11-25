@@ -11,6 +11,11 @@ import com.khachsan.quanlykhachsan.repository.HoaDonRepository;
 import com.khachsan.quanlykhachsan.dto.response.sddv.SuDungDichVuListResponse;
 import com.khachsan.quanlykhachsan.repository.SuDungDichVuRepository;
 import com.khachsan.quanlykhachsan.exception.BusinessException;
+import com.khachsan.quanlykhachsan.config.security.CustomUserDetail;
+import com.khachsan.quanlykhachsan.entity.NhanVien;
+import com.khachsan.quanlykhachsan.repository.NhanVienRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
@@ -26,6 +31,7 @@ import java.math.BigDecimal;
 public class InvoiceService {
     private final HoaDonRepository repo;
     private final SuDungDichVuRepository sddvRepo;
+    private final NhanVienRepository nhanVienRepo;
     public record HoaDonRequest(String maThue, LocalDate ngayLapHoaDon) {
     }
 
@@ -41,7 +47,8 @@ public class InvoiceService {
         SuDungDichVu sd = hd.getSuDungDichVu();
         if (sd == null) {
             return new HoaDonListResponse(hd.getMaHoaDon(), null, null, null, null, null,
-                    hd.getNgayLapHoaDon(), null, null, hd.getTongTien());
+                    hd.getNgayLapHoaDon(), null, null, hd.getTongTien(),
+                    hd.getNhanVien().getMaNhanVien());
         }
         ThuePhong tp = sd.getThuePhong();
         HoaDonRepository.ChiPhiThue cp = repo.layChiPhiThue(tp.getMaThue());
@@ -55,7 +62,8 @@ public class InvoiceService {
                 hd.getNgayLapHoaDon(),
                 cp.getGiaPhong().multiply(BigDecimal.valueOf(cp.getSoNgay())),
                 cp.getTienDichVu(),
-                hd.getTongTien());
+                hd.getTongTien(),
+                hd.getNhanVien().getMaNhanVien());
     }
 
     public void xoa(String maHoaDon) {
@@ -106,10 +114,20 @@ public class InvoiceService {
         HoaDon hd = HoaDon.builder()
                 .maHoaDon(taoMaTuDong())
                 .suDungDichVu(dsDichVu.get(0))
+                .nhanVien(layNhanVienDangNhap())
                 .ngayLapHoaDon(ngayTra)
                 .tongTien(tien.tongTien())
                 .build();
         return toListResponse(repo.save(hd));
+    }
+
+    private NhanVien layNhanVienDangNhap() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof CustomUserDetail user)) {
+            throw new BusinessException("Không xác định được nhân viên đang đăng nhập");
+        }
+        return nhanVienRepo.findById(user.getId()).orElseThrow(() ->
+                new BusinessException("Không tìm thấy nhân viên đang đăng nhập"));
     }
 
     private String taoMaTuDong() {

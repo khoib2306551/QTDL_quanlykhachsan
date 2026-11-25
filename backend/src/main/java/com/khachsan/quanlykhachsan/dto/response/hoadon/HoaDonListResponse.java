@@ -13,5 +13,6 @@ public record HoaDonListResponse(
         LocalDate ngayLapHoaDon,
         BigDecimal tienPhong,
         BigDecimal tienDichVu,
-        BigDecimal tongTien) {
+        BigDecimal tongTien,
+        String maNhanVien) {
 }
