@@ -29,11 +29,19 @@ public class InvoiceService {
     public record HoaDonRequest(String maThue, LocalDate ngayLapHoaDon) {
     }
 
-    public PageResponse<HoaDonListResponse> timKiem(String maHoaDon, int page, int size) {
+    public PageResponse<HoaDonListResponse> timKiem(String maHoaDon, LocalDate tuNgay, LocalDate denNgay,
+                                                    String sortBy, String sortDir, int page, int size) {
+        if (tuNgay != null && denNgay != null && tuNgay.isAfter(denNgay)) {
+            throw new BusinessException("Từ ngày không được sau đến ngày");
+        }
+        // Chỉ cho sắp xếp theo 2 cột này, giá trị khác thì dùng mặc định
+        String cot = "tongTien".equals(sortBy) ? "tongTien" : "ngayLapHoaDon";
+        Sort.Direction chieu = "asc".equalsIgnoreCase(sortDir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size,
-                Sort.by(Sort.Order.desc("ngayLapHoaDon"), Sort.Order.asc("maHoaDon")));
+                Sort.by(chieu, cot).and(Sort.by(Sort.Direction.ASC, "maHoaDon")));
         return PageResponse.from(
-                repo.findByMaHoaDonContainingIgnoreCase(maHoaDon.trim(), pageable)
+                repo.timKiemNangCao(maHoaDon.trim(), tuNgay, denNgay, pageable)
                         .map(this::toListResponse));
     }
 

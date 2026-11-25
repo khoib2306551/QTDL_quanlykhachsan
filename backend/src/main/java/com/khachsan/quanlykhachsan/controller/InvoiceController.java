@@ -7,6 +7,8 @@ import com.khachsan.quanlykhachsan.dto.response.hoadon.HoaDonListResponse;
 import com.khachsan.quanlykhachsan.service.InvoiceService;
 import com.khachsan.quanlykhachsan.dto.response.sddv.SuDungDichVuListResponse;
 import java.util.List;
+import java.time.LocalDate;
+import org.springframework.format.annotation.DateTimeFormat;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +23,14 @@ public class InvoiceController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<HoaDonListResponse>>> timKiem(
             @RequestParam(defaultValue = "") String maHoaDon,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate tuNgay,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate denNgay,
+            @RequestParam(defaultValue = "ngayLapHoaDon") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ApiResponse.success("success", service.timKiem(maHoaDon, page, size)));
+        return ResponseEntity.ok(ApiResponse.success("success",
+                service.timKiem(maHoaDon, tuNgay, denNgay, sortBy, sortDir, page, size)));
     }
 
     @DeleteMapping("/{maHoaDon}")

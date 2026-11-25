@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
 
@@ -35,6 +36,16 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
     Long layMaSoLonNhat();
 
     Page<HoaDon> findByMaHoaDonContainingIgnoreCase(String maHoaDon, Pageable pageable);
+    @Query("""
+        SELECT h FROM HoaDon h
+        WHERE LOWER(h.maHoaDon) LIKE LOWER(CONCAT('%', :maHoaDon, '%'))
+          AND (:tuNgay IS NULL OR h.ngayLapHoaDon >= :tuNgay)
+          AND (:denNgay IS NULL OR h.ngayLapHoaDon <= :denNgay)
+        """)
+    Page<HoaDon> timKiemNangCao(@Param("maHoaDon") String maHoaDon,
+                                @Param("tuNgay") LocalDate tuNgay,
+                                @Param("denNgay") LocalDate denNgay,
+                                Pageable pageable);
 
     @Query(value = """
         SELECT fn_TinhSoNgayLuuTru(tp.NgayNhan, tp.NgayTra) * lp.GiaPhong

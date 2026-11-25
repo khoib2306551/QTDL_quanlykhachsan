@@ -17,6 +17,10 @@ export default function HoaDonTab({ onError }) {
   const [list, setList] = useState([]);
   const [keyword, setKeyword] = useState('');
   const [search, setSearch] = useState('');
+  const [tuNgay, setTuNgay] = useState('');     // ô nhập từ ngày
+  const [denNgay, setDenNgay] = useState('');   // ô nhập đến ngày
+  const [dateFilter, setDateFilter] = useState({ tuNgay: '', denNgay: '' }); // khoảng ngày đã bấm lọc
+  const [sort, setSort] = useState({ sortBy: 'ngayLapHoaDon', sortDir: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -34,9 +38,22 @@ export default function HoaDonTab({ onError }) {
   const fetchList = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await tv3Api.layDSHoaDon(search, PAGE_SIZE, currentPage);
+      const res = await tv3Api.layDSHoaDon({
+        maHoaDon: search,
+        tuNgay: dateFilter.tuNgay || undefined,
+        denNgay: dateFilter.denNgay || undefined,
+        sortBy: sort.sortBy,
+        sortDir: sort.sortDir,
+        size: PAGE_SIZE,
+        page: currentPage,
+      });
       const raw = res.data?.data ?? res.data;
       setList(raw?.content || []);
+      
+      // Bỏ chọn nếu hóa đơn đang xem chi tiết không còn trong danh sách mới
+      setSelected((prev) =>
+        (raw?.content || []).some((x) => x.maHoaDon === prev?.maHoaDon) ? prev : null
+      );
       setTotalPages(Math.max(raw?.totalPages || 1, 1));
       setTotalElements(raw?.totalElements || 0);
     } catch (err) {
@@ -44,7 +61,7 @@ export default function HoaDonTab({ onError }) {
     } finally {
       setLoading(false);
     }
-  }, [onError, search, currentPage]);
+  }, [onError, search, dateFilter, sort, currentPage]);
 
   useEffect(() => {
     fetchList();
@@ -61,17 +78,49 @@ export default function HoaDonTab({ onError }) {
     })();
   }, [onError]);
 
+  // Phần 1: tìm theo mã hóa đơn (xóa lọc ngày)
   const handleSearch = (e) => {
     e.preventDefault();
     setNotice({ type: '', text: '' });
     setCurrentPage(1);
     setSearch(keyword.trim());
+    setTuNgay('');
+    setDenNgay('');
+    setDateFilter({ tuNgay: '', denNgay: '' });
+  };
+
+  // Phần 2: lọc theo khoảng ngày lập (xóa tìm theo mã)
+  const handleDateFilter = (e) => {
+    e.preventDefault();
+    setNotice({ type: '', text: '' });
+    if (!tuNgay && !denNgay) {
+      setNotice({ type: 'error', text: 'Vui lòng chọn ít nhất một ngày.' });
+      return;
+    }
+    if (tuNgay && denNgay && tuNgay > denNgay) {
+      setNotice({ type: 'error', text: 'Từ ngày không được sau đến ngày.' });
+      return;
+    }
+    setCurrentPage(1);
+    setDateFilter({ tuNgay, denNgay });
+    setKeyword('');
+    setSearch('');
+  };
+
+  // Phần 3: đổi cách sắp xếp (áp dụng ngay)
+  const handleSort = (field, value) => {
+    setCurrentPage(1);
+    setSort((s) => ({ ...s, [field]: value }));
   };
 
   const handleReset = () => {
     setNotice({ type: '', text: '' });
     setKeyword('');
     setSearch('');
+    setTuNgay('');
+    setDenNgay('');
+    setDateFilter({ tuNgay: '', denNgay: '' });
+    setSort({ sortBy: 'ngayLapHoaDon', sortDir: 'desc' });
     setCurrentPage(1);
   };
 
@@ -225,10 +274,37 @@ export default function HoaDonTab({ onError }) {
               placeholder="VD: HD01"
             />
           </div>
-
           <div className="btn-group">
             <button type="submit" className="btn inline-flex items-center gap-1.5">
-              <Search size={15} /> Tìm kiếm
+              <Search size={15} /> Tìm theo mã
+            </button>
+          </div>
+        </form>
+
+        <hr className="my-3 border-slate-200" />
+
+        <form onSubmit={handleDateFilter}>
+          <div className="form-row">
+            <label>Từ ngày:</label>
+            <input
+              type="date"
+              value={tuNgay}
+              max={denNgay || undefined}
+              onChange={(e) => setTuNgay(e.target.value)}
+            />
+          </div>
+          <div className="form-row">
+            <label>Đến ngày:</label>
+            <input
+              type="date"
+              value={denNgay}
+              min={tuNgay || undefined}
+              onChange={(e) => setDenNgay(e.target.value)}
+            />
+          </div>
+          <div className="btn-group">
+            <button type="submit" className="btn inline-flex items-center gap-1.5">
+              <Search size={15} /> Lọc theo ngày
             </button>
             <button
               type="button"
@@ -243,6 +319,17 @@ export default function HoaDonTab({ onError }) {
 
       <div className="card-box">
         <div className="card-title">Danh sách hóa đơn ({totalElements})</div>
+        <div className="mb-3 flex items-center gap-2 text-[13px]">
+          <span className="font-semibold">Sắp xếp theo:</span>
+          <select value={sort.sortBy} onChange={(e) => handleSort('sortBy', e.target.value)}>
+            <option value="ngayLapHoaDon">Ngày lập</option>
+            <option value="tongTien">Tổng tiền</option>
+          </select>
+          <select value={sort.sortDir} onChange={(e) => handleSort('sortDir', e.target.value)}>
+            <option value="desc">Giảm dần</option>
+            <option value="asc">Tăng dần</option>
+          </select>
+        </div>
 
         <div className="data-table-wrapper">
           <table className="data-table">
