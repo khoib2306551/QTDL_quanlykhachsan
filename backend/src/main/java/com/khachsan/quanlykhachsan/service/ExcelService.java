@@ -34,7 +34,6 @@ import com.khachsan.quanlykhachsan.dto.response.ThongKeResponse;
 
 import lombok.RequiredArgsConstructor;
 
-
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -76,7 +75,6 @@ public class ExcelService {
             ORDER BY tp.NgayNhan DESC, tp.MaThue ASC
             """;
 
-   
     private static final String SQL_XUAT_HOA_DON = """
             SELECT
                 hd.MaHoaDon,
@@ -97,7 +95,6 @@ public class ExcelService {
             ORDER BY hd.NgayLapHoaDon DESC, hd.MaHoaDon ASC
             """;
 
-    
     private static final String SQL_XUAT_CHI_TIET_HOA_DON = """
             SELECT
                 hd.MaHoaDon,
@@ -180,7 +177,6 @@ public class ExcelService {
         }
     }
 
-    
     public byte[] xuatBaoCaoThongKe(
             String kieuThongKe,
             Integer nam,
@@ -295,7 +291,7 @@ public class ExcelService {
         int rowIndex = 1;
         for (ThongKeResponse item : rows) {
             Row row = sheet.createRow(rowIndex++);
-            setCellValue(row.createCell(0), item.getMocThoiGian());
+            setCellValue(row.createCell(0), taoNhanMocThoiGian(item));
             setCellValue(row.createCell(1), item.getNam());
             setCellValue(row.createCell(2), item.getTuanThu());
             setCellValue(row.createCell(3), item.getThang());
@@ -312,6 +308,29 @@ public class ExcelService {
         sheet.createFreezePane(0, 1);
     }
 
+    private Object taoNhanMocThoiGian(ThongKeResponse item) {
+        if (item.getMocThoiGian() != null) {
+            return item.getMocThoiGian();
+        }
+
+        Integer nam = item.getNam();
+        String hauToNam = nam == null ? "" : "/" + nam;
+
+        if (item.getTuanThu() != null) {
+            return "Tuần " + item.getTuanThu() + hauToNam;
+        }
+        if (item.getThang() != null) {
+            return "Tháng " + item.getThang() + hauToNam;
+        }
+        if (item.getQuy() != null) {
+            return "Quý " + item.getQuy() + hauToNam;
+        }
+        if (nam != null) {
+            return "Năm " + nam;
+        }
+        return "Không xác định";
+    }
+
     private void writeSqlSheet(
             XSSFWorkbook workbook,
             String sheetName,
@@ -324,13 +343,12 @@ public class ExcelService {
         int[] rowIndex = {1};
 
         jdbcTemplate.query(sql, (RowCallbackHandler) resultSet -> {
-    Row row = sheet.createRow(rowIndex[0]++);
-
-    for (int column = 0; column < databaseColumns.length; column++) {
-        Object value = resultSet.getObject(databaseColumns[column]);
-        setCellValue(row.createCell(column), value);
-    }
-});
+            Row row = sheet.createRow(rowIndex[0]++);
+            for (int column = 0; column < databaseColumns.length; column++) {
+                Object value = resultSet.getObject(databaseColumns[column]);
+                setCellValue(row.createCell(column), value);
+            }
+        });
 
         applyColumnFormats(sheet, headers.length);
         sheet.setAutoFilter(new CellRangeAddress(0, Math.max(0, rowIndex[0] - 1), 0, headers.length - 1));
@@ -396,7 +414,6 @@ public class ExcelService {
         } else if (value instanceof Boolean bool) {
             cell.setCellValue(bool);
         } else {
-            // Luôn ghi dữ liệu dạng text, không diễn giải chuỗi thành công thức Excel.
             cell.setCellValue(value.toString());
         }
     }

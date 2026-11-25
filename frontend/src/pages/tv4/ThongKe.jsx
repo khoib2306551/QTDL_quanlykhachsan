@@ -126,21 +126,14 @@ export default function ThongKePage() {
         rows = normalizeRows(unwrapResponse(rowsResponse));
         summaryData = unwrapResponse(summaryResponse);
       } else if (selectedFilter.kieuThongKe === 'QUY') {
-        const yearRowsPromise = tv4Api.thongKeDoanhThu('QUY', selectedFilter.nam);
         const quarterRange = getQuarterRange(selectedFilter.nam, selectedFilter.quy);
-        const quarterPromise = tv4Api.thongKeTheoQuy(selectedFilter.quy, selectedFilter.nam);
-        const summaryPromise = tv4Api.layChiSoTongHop(quarterRange);
-        const [rowsResponse, quarterResponse, summaryResponse] = await Promise.all([
-          yearRowsPromise,
-          quarterPromise,
-          summaryPromise,
+        const [quarterResponse, summaryResponse] = await Promise.all([
+          tv4Api.thongKeTheoQuy(selectedFilter.quy, selectedFilter.nam),
+          tv4Api.layChiSoTongHop(quarterRange),
         ]);
 
-        rows = normalizeRows(unwrapResponse(rowsResponse));
         const selectedQuarter = unwrapResponse(quarterResponse);
-        if (selectedQuarter && !rows.some((row) => Number(row.quy) === Number(selectedFilter.quy))) {
-          rows = [...rows, selectedQuarter].sort((a, b) => Number(a.quy) - Number(b.quy));
-        }
+        rows = selectedQuarter ? [selectedQuarter] : [];
         summaryData = unwrapResponse(summaryResponse);
       } else {
         const yearRange = getYearRange(selectedFilter.nam);
@@ -166,7 +159,7 @@ export default function ThongKePage() {
 
   useEffect(() => {
     loadStatistics(INITIAL_FILTER);
-  }, [loadStatistics]); // Tải dữ liệu mặc định khi mở trang.
+  }, [loadStatistics]);
 
   const handleApplyFilter = (event) => {
     event.preventDefault();
