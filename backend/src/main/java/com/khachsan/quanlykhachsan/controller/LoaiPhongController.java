@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
+
 @RestController
 @RequestMapping("/api/loai-phong")
 @RequiredArgsConstructor
@@ -16,12 +18,18 @@ public class LoaiPhongController {
 
     private final LoaiPhongService loaiPhongService;
     @GetMapping
-    public ResponseEntity<ApiResponse<PageResponse<RoomTypeResponse>>> getRoomTypes(
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "1") int page
-            ){
-        PageResponse<RoomTypeResponse> response = this.loaiPhongService.getPageRoomType(page,size);
-        return ResponseEntity.ok(ApiResponse.success("success",response));
+    public ResponseEntity<ApiResponse<PageResponse<RoomTypeResponse>>> getPageLoaiPhong(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) BigDecimal giaTu,
+            @RequestParam(required = false) BigDecimal giaDen,
+            @RequestParam(required = false) Boolean chiConPhongTrong,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        PageResponse<RoomTypeResponse> response = this.loaiPhongService.getPageRoomType(
+                keyword, giaTu, giaDen, chiConPhongTrong, page, size
+        );
+        return ResponseEntity.ok(ApiResponse.success("success", response));
     }
 
     @PostMapping
