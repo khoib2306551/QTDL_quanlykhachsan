@@ -312,8 +312,14 @@ public class ExcelImportService {
             } else {
                 if (maPhong.length() > 10) errors.add("Mã phòng không được vượt quá 10 ký tự");
                 String idKey = key(maPhong);
-                if (existingRoomIds.contains(idKey) || !seenRoomIds.add(idKey)) {
-                    errors.add("Mã phòng đã tồn tại trong database hoặc bị trùng trong file");
+                boolean maPhongDaTonTaiTrongDatabase = existingRoomIds.contains(idKey);
+                boolean maPhongBiTrungTrongFile = !seenRoomIds.add(idKey);
+
+                if (maPhongDaTonTaiTrongDatabase) {
+                    errors.add("Mã phòng đã tồn tại trong database");
+                }
+                if (maPhongBiTrungTrongFile) {
+                    errors.add("Mã phòng bị trùng trong file Excel");
                 }
             }
 
@@ -322,8 +328,14 @@ public class ExcelImportService {
             } else {
                 if (soPhong.length() > 20) errors.add("Số phòng không được vượt quá 20 ký tự");
                 String numberKey = key(soPhong);
-                if (existingRoomNumbers.contains(numberKey) || !seenRoomNumbers.add(numberKey)) {
-                    errors.add("Số phòng đã tồn tại trong database hoặc bị trùng trong file");
+                boolean soPhongDaTonTaiTrongDatabase = existingRoomNumbers.contains(numberKey);
+                boolean soPhongBiTrungTrongFile = !seenRoomNumbers.add(numberKey);
+
+                if (soPhongDaTonTaiTrongDatabase) {
+                    errors.add("Số phòng đã tồn tại trong database");
+                }
+                if (soPhongBiTrungTrongFile) {
+                    errors.add("Số phòng bị trùng trong file Excel");
                 }
             }
 
