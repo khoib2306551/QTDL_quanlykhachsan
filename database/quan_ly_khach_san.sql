@@ -153,7 +153,7 @@ BEGIN
         tp.MaThue,
         kh.MaKhachHang,
         kh.TenKhachHang,
-        kh.SoDienThoa,
+        kh.SoDienThoai,
         p.MaPhong,
         p.SoPhong,
         lp.TenLoai,
