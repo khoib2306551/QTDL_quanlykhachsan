@@ -1,11 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { Search, RotateCcw, Plus, Pencil, Trash2, Users, Sparkles, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Search,
+  RotateCcw,
+  Plus,
+  Pencil,
+  Trash2,
+  Users,
+  Sparkles,
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 import { tv2Api } from '../../services/api';
+import './KhachHangDichVu.css';
 
 const KH_MAC_DINH = { maKhachHang: '', tenKhachHang: '', diaChi: '', soDienThoai: '' };
 const DV_MAC_DINH = { maDichVu: '', tenDichVu: '', giaDichVu: '' };
 
-// Tách mảng an toàn để tránh crash nếu API trả về định dạng khác mảng trực tiếp
 const tachMang = (res) => {
   const body = res?.data;
   if (Array.isArray(body)) return body;
@@ -14,27 +26,45 @@ const tachMang = (res) => {
   return [];
 };
 
-// Lấy thông báo lỗi từ Backend
 const layThongBaoLoi = (err, macDinh) => {
   return err?.response?.data?.message || err?.response?.data?.error || macDinh;
 };
 
-// Nhận diện lỗi ràng buộc khóa ngoại từ MySQL
 const laLoiKhoaNgoai = (msg = '') => {
   const lower = msg.toLowerCase();
   return lower.includes('foreign key') || lower.includes('constraint');
 };
 
+const chuanHoa = (str = '') =>
+  String(str)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
+
+const soSanhChuoi = (a = '', b = '') =>
+  String(a || '').localeCompare(String(b || ''), 'vi', { numeric: true, sensitivity: 'base' });
+
+const dinhDangTien = (gia) => {
+  const so = Number(gia);
+  if (Number.isNaN(so)) return '0 đ';
+  return `${so.toLocaleString('vi-VN')} đ`;
+};
+
 export default function KhachHangDichVuPage() {
   const [dsKH, setDsKH] = useState([]);
   const [formKH, setFormKH] = useState(KH_MAC_DINH);
-  const [tuKhoaKH, setTuKhoaKH] = useState('');
   const [dangChonKH, setDangChonKH] = useState(false);
+  const [tuKhoaKH, setTuKhoaKH] = useState('');
+  const [sapXepKH, setSapXepKH] = useState({ truong: 'maKhachHang', chieu: 'asc' });
 
   const [dsDV, setDsDV] = useState([]);
   const [formDV, setFormDV] = useState(DV_MAC_DINH);
-  const [tuKhoaDV, setTuKhoaDV] = useState('');
   const [dangChonDV, setDangChonDV] = useState(false);
+  const [tuKhoaDV, setTuKhoaDV] = useState('');
+  const [sapXepDV, setSapXepDV] = useState({ truong: 'maDichVu', chieu: 'asc' });
 
   const [thongBao, setThongBao] = useState({ noiDung: '', loai: '' });
 
@@ -43,9 +73,9 @@ export default function KhachHangDichVuPage() {
     setTimeout(() => setThongBao({ noiDung: '', loai: '' }), 3000);
   };
 
-  const taiDSKhachHang = async (tuKhoa = '') => {
+  const taiDSKhachHang = async () => {
     try {
-      const res = await tv2Api.layDSKH(tuKhoa);
+      const res = await tv2Api.layDSKH('');
       setDsKH(tachMang(res));
     } catch (e) {
       console.error(e);
@@ -53,9 +83,9 @@ export default function KhachHangDichVuPage() {
     }
   };
 
-  const taiDSDichVu = async (tuKhoa = '') => {
+  const taiDSDichVu = async () => {
     try {
-      const res = await tv2Api.layDSDichVu(tuKhoa);
+      const res = await tv2Api.layDSDichVu('');
       setDsDV(tachMang(res));
     } catch (e) {
       console.error(e);
@@ -67,6 +97,60 @@ export default function KhachHangDichVuPage() {
     taiDSKhachHang();
     taiDSDichVu();
   }, []);
+
+  const dsKHHienThi = useMemo(() => {
+    const kw = chuanHoa(tuKhoaKH);
+    const ketQua = !kw
+      ? dsKH
+      : dsKH.filter((kh) =>
+          chuanHoa(`${kh.maKhachHang || ''} ${kh.tenKhachHang || ''} ${kh.diaChi || ''} ${kh.soDienThoai || ''}`).includes(kw)
+        );
+
+    const heSo = sapXepKH.chieu === 'asc' ? 1 : -1;
+    return [...ketQua].sort((a, b) => soSanhChuoi(a[sapXepKH.truong], b[sapXepKH.truong]) * heSo);
+  }, [dsKH, tuKhoaKH, sapXepKH]);
+
+  const doiSapXepCotKH = (truong) => {
+    setSapXepKH((prev) =>
+      prev.truong === truong
+        ? { truong, chieu: prev.chieu === 'asc' ? 'desc' : 'asc' }
+        : { truong, chieu: 'asc' }
+    );
+  };
+
+  const dsDVHienThi = useMemo(() => {
+    const kw = chuanHoa(tuKhoaDV);
+    const ketQua = !kw
+      ? dsDV
+      : dsDV.filter((dv) =>
+          chuanHoa(`${dv.maDichVu || ''} ${dv.tenDichVu || ''} ${dv.giaDichVu ?? ''}`).includes(kw)
+        );
+
+    const heSo = sapXepDV.chieu === 'asc' ? 1 : -1;
+    return [...ketQua].sort((a, b) => {
+      if (sapXepDV.truong === 'giaDichVu') {
+        return (Number(a.giaDichVu ?? 0) - Number(b.giaDichVu ?? 0)) * heSo;
+      }
+      return soSanhChuoi(a[sapXepDV.truong], b[sapXepDV.truong]) * heSo;
+    });
+  }, [dsDV, tuKhoaDV, sapXepDV]);
+
+  const doiSapXepCotDV = (truong) => {
+    setSapXepDV((prev) =>
+      prev.truong === truong
+        ? { truong, chieu: prev.chieu === 'asc' ? 'desc' : 'asc' }
+        : { truong, chieu: 'asc' }
+    );
+  };
+
+  const renderIconSort = (state, truong) => {
+    if (state.truong !== truong) return <ArrowUpDown size={13} className="tv2-sort-idle" />;
+    return state.chieu === 'asc' ? (
+      <ArrowUp size={13} className="tv2-sort-active" />
+    ) : (
+      <ArrowDown size={13} className="tv2-sort-active" />
+    );
+  };
 
   // --- Xử lý Khách hàng ---
   const chonKhachHang = (kh) => {
@@ -85,6 +169,7 @@ export default function KhachHangDichVuPage() {
   };
 
   const xuLyThemKH = async () => {
+    if (dangChonKH) return;
     if (!formKH.tenKhachHang.trim()) {
       hienThongBao('Vui lòng nhập tên khách hàng', 'error');
       return;
@@ -98,7 +183,7 @@ export default function KhachHangDichVuPage() {
       });
       hienThongBao(`Đã thêm khách hàng mới (${res.data?.maKhachHang || ''})`);
       resetKhachHang();
-      taiDSKhachHang(tuKhoaKH);
+      taiDSKhachHang();
     } catch (e) {
       hienThongBao(layThongBaoLoi(e, 'Không thể thêm khách hàng'), 'error');
     }
@@ -121,7 +206,7 @@ export default function KhachHangDichVuPage() {
         soDienThoai: formKH.soDienThoai.trim(),
       });
       hienThongBao('Đã cập nhật khách hàng');
-      taiDSKhachHang(tuKhoaKH);
+      taiDSKhachHang();
     } catch (e) {
       hienThongBao(layThongBaoLoi(e, 'Không thể cập nhật khách hàng'), 'error');
     }
@@ -137,7 +222,7 @@ export default function KhachHangDichVuPage() {
       await tv2Api.xoaKH(formKH.maKhachHang);
       hienThongBao('Đã xóa khách hàng');
       resetKhachHang();
-      taiDSKhachHang(tuKhoaKH);
+      taiDSKhachHang();
     } catch (e) {
       const msg = layThongBaoLoi(e, '');
       hienThongBao(
@@ -165,6 +250,7 @@ export default function KhachHangDichVuPage() {
   };
 
   const xuLyThemDV = async () => {
+    if (dangChonDV) return;
     if (!formDV.tenDichVu.trim() || formDV.giaDichVu === '' || Number(formDV.giaDichVu) < 0) {
       hienThongBao('Vui lòng nhập tên dịch vụ và đơn giá hợp lệ (>= 0)', 'error');
       return;
@@ -177,7 +263,7 @@ export default function KhachHangDichVuPage() {
       });
       hienThongBao(`Đã thêm dịch vụ mới (${res.data?.maDichVu || ''})`);
       resetDichVu();
-      taiDSDichVu(tuKhoaDV);
+      taiDSDichVu();
     } catch (e) {
       hienThongBao(layThongBaoLoi(e, 'Không thể thêm dịch vụ'), 'error');
     }
@@ -199,7 +285,7 @@ export default function KhachHangDichVuPage() {
         giaDichVu: Number(formDV.giaDichVu),
       });
       hienThongBao('Đã cập nhật dịch vụ');
-      taiDSDichVu(tuKhoaDV);
+      taiDSDichVu();
     } catch (e) {
       hienThongBao(layThongBaoLoi(e, 'Không thể cập nhật dịch vụ'), 'error');
     }
@@ -215,7 +301,7 @@ export default function KhachHangDichVuPage() {
       await tv2Api.xoaDichVu(formDV.maDichVu);
       hienThongBao('Đã xóa dịch vụ');
       resetDichVu();
-      taiDSDichVu(tuKhoaDV);
+      taiDSDichVu();
     } catch (e) {
       const msg = layThongBaoLoi(e, '');
       hienThongBao(
@@ -229,303 +315,69 @@ export default function KhachHangDichVuPage() {
 
   return (
     <div className="tv2-modern">
-      <style>{`
-        .tv2-modern {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          padding: 4px;
-          color: #1e293b;
-        }
-        .tv2-toast {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 12px 16px;
-          border-radius: 8px;
-          font-size: 13.5px;
-          font-weight: 500;
-          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
-        }
-        .tv2-toast.success {
-          background: #ecfdf5;
-          color: #065f46;
-          border: 1px solid #a7f3d0;
-        }
-        .tv2-toast.error {
-          background: #fef2f2;
-          color: #991b1b;
-          border: 1px solid #fecaca;
-        }
-        .tv2-section {
-          display: grid;
-          grid-template-columns: 1.65fr 1fr;
-          gap: 18px;
-          align-items: start;
-        }
-        @media (max-width: 1100px) {
-          .tv2-section {
-            grid-template-columns: 1fr;
-          }
-        }
-        .tv2-card {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-          overflow: hidden;
-        }
-        .tv2-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-          gap: 12px;
-          padding: 15px 18px;
-          border-bottom: 1px solid #f1f5f9;
-          background: #ffffff;
-        }
-        .tv2-header-title {
-          display: flex;
-          align-items: center;
-          gap: 9px;
-          font-size: 15px;
-          font-weight: 600;
-          color: #0f172a;
-        }
-        .tv2-count-badge {
-          background: #f1f5f9;
-          color: #475569;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 2px 8px;
-          border-radius: 999px;
-        }
-        .tv2-search-bar {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .tv2-search-input-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-        .tv2-search-input-wrap svg {
-          position: absolute;
-          left: 10px;
-          color: #94a3b8;
-          pointer-events: none;
-        }
-        .tv2-search-input {
-          padding: 7px 28px 7px 32px;
-          border: 1px solid #cbd5e1;
-          border-radius: 7px;
-          font-size: 13px;
-          width: 220px;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .tv2-search-input:focus {
-          border-color: #2f667a;
-          box-shadow: 0 0 0 3px rgba(47, 102, 122, 0.12);
-        }
-        .tv2-clear-btn {
-          position: absolute;
-          right: 8px;
-          background: none;
-          border: none;
-          color: #94a3b8;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-        }
-        .tv2-clear-btn:hover {
-          color: #475569;
-        }
-        .tv2-table-scroll {
-          max-height: 310px;
-          overflow-y: auto;
-        }
-        .tv2-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 13.5px;
-        }
-        .tv2-table th {
-          background: #f8fafc;
-          color: #475569;
-          font-weight: 600;
-          font-size: 12.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          padding: 11px 16px;
-          border-bottom: 1px solid #e2e8f0;
-          text-align: left;
-          position: sticky;
-          top: 0;
-          z-index: 1;
-        }
-        .tv2-table td {
-          padding: 11px 16px;
-          border-bottom: 1px solid #f1f5f9;
-          color: #334155;
-        }
-        .tv2-table tbody tr {
-          transition: background-color 0.12s;
-          cursor: pointer;
-        }
-        .tv2-table tbody tr:hover {
-          background-color: #f8fafc;
-        }
-        .tv2-table tbody tr.selected {
-          background-color: #f0f9ff;
-        }
-        .tv2-code-pill {
-          display: inline-block;
-          font-weight: 600;
-          font-size: 12.5px;
-          color: #26596a;
-          background: #e0f2fe;
-          padding: 2px 8px;
-          border-radius: 5px;
-        }
-        .tv2-price-text {
-          font-weight: 600;
-          color: #0f766e;
-        }
-        .tv2-form-body {
-          padding: 18px;
-          display: flex;
-          flex-direction: column;
-          gap: 13px;
-        }
-        .tv2-field {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-        }
-        .tv2-field label {
-          font-size: 12.5px;
-          font-weight: 600;
-          color: #475569;
-        }
-        .tv2-field input {
-          padding: 8px 12px;
-          border: 1px solid #cbd5e1;
-          border-radius: 7px;
-          font-size: 13.5px;
-          color: #0f172a;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .tv2-field input:focus {
-          border-color: #2f667a;
-          box-shadow: 0 0 0 3px rgba(47, 102, 122, 0.12);
-        }
-        .tv2-field input:disabled {
-          background: #f1f5f9;
-          color: #64748b;
-          cursor: not-allowed;
-        }
-        .tv2-actions {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 4px;
-          padding-top: 12px;
-          border-top: 1px solid #f1f5f9;
-        }
-        .tv2-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 8px 14px;
-          border-radius: 7px;
-          font-size: 13px;
-          font-weight: 600;
-          border: 1px solid transparent;
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-        .tv2-btn-primary {
-          background: #26596a;
-          color: #ffffff;
-        }
-        .tv2-btn-primary:hover {
-          background: #1e4755;
-        }
-        .tv2-btn-amber {
-          background: #f59e0b;
-          color: #ffffff;
-        }
-        .tv2-btn-amber:hover {
-          background: #d97706;
-        }
-        .tv2-btn-danger {
-          background: #ef4444;
-          color: #ffffff;
-        }
-        .tv2-btn-danger:hover {
-          background: #dc2626;
-        }
-        .tv2-btn-ghost {
-          background: #f1f5f9;
-          color: #475569;
-          border-color: #e2e8f0;
-        }
-        .tv2-btn-ghost:hover {
-          background: #e2e8f0;
-          color: #1e293b;
-        }
-      `}</style>
-
       {thongBao.noiDung && (
         <div className={`tv2-toast ${thongBao.loai}`}>
           <span>{thongBao.noiDung}</span>
+          <button
+            type="button"
+            className="tv2-clear-btn"
+            style={{ position: 'static', color: 'inherit' }}
+            onClick={() => setThongBao({ noiDung: '', loai: '' })}
+          >
+            <X size={15} />
+          </button>
         </div>
       )}
 
-      {/* KHÁCH HÀNG */}
+      {/* ==================== PHẦN 1: KHÁCH HÀNG ==================== */}
       <div className="tv2-section">
         <div className="tv2-card">
           <div className="tv2-card-header">
             <div className="tv2-header-title">
               <Users size={18} color="#26596a" />
               <span>Danh sách khách hàng</span>
-              <span className="tv2-count-badge">{dsKH.length}</span>
+              <span className="tv2-count-badge">
+                {tuKhoaKH.trim() ? `${dsKHHienThi.length} / ${dsKH.length}` : dsKH.length}
+              </span>
             </div>
 
-            <div className="tv2-search-bar">
+            <div className="tv2-toolbar">
               <div className="tv2-search-input-wrap">
-                <Search size={15} />
+                <Search size={14} className="tv2-search-icon" />
                 <input
+                  type="text"
                   className="tv2-search-input"
+                  placeholder="Tìm mã, tên, địa chỉ, SĐT..."
                   value={tuKhoaKH}
-                  placeholder="Tìm tên, SĐT, địa chỉ..."
                   onChange={(e) => setTuKhoaKH(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && taiDSKhachHang(tuKhoaKH.trim())}
                 />
                 {tuKhoaKH && (
                   <button
+                    type="button"
                     className="tv2-clear-btn"
-                    title="Xóa tìm kiếm"
-                    onClick={() => {
-                      setTuKhoaKH('');
-                      taiDSKhachHang('');
-                    }}
+                    onClick={() => setTuKhoaKH('')}
                   >
                     <X size={14} />
                   </button>
                 )}
               </div>
-              <button
-                className="tv2-btn tv2-btn-primary"
-                onClick={() => taiDSKhachHang(tuKhoaKH.trim())}
+
+              <select
+                className="tv2-sort-select"
+                value={`${sapXepKH.truong}_${sapXepKH.chieu}`}
+                onChange={(e) => {
+                  const [truong, chieu] = e.target.value.split('_');
+                  setSapXepKH({ truong, chieu });
+                }}
+                title="Sắp xếp danh sách khách hàng"
               >
-                Tìm
-              </button>
+                <option value="maKhachHang_asc">Mã KH: Tăng dần</option>
+                <option value="maKhachHang_desc">Mã KH: Giảm dần</option>
+                <option value="tenKhachHang_asc">Họ tên: A → Z</option>
+                <option value="tenKhachHang_desc">Họ tên: Z → A</option>
+                <option value="diaChi_asc">Địa chỉ: A → Z</option>
+                <option value="diaChi_desc">Địa chỉ: Z → A</option>
+              </select>
             </div>
           </div>
 
@@ -533,32 +385,48 @@ export default function KhachHangDichVuPage() {
             <table className="tv2-table">
               <thead>
                 <tr>
-                  <th style={{ width: '110px' }}>Mã KH</th>
-                  <th>Họ và tên</th>
-                  <th>Địa chỉ</th>
-                  <th style={{ width: '130px' }}>Số điện thoại</th>
+                  <th className="tv2-th-sort" onClick={() => doiSapXepCotKH('maKhachHang')}>
+                    <span className="tv2-th-inner">
+                      Mã KH {renderIconSort(sapXepKH, 'maKhachHang')}
+                    </span>
+                  </th>
+                  <th className="tv2-th-sort" onClick={() => doiSapXepCotKH('tenKhachHang')}>
+                    <span className="tv2-th-inner">
+                      Họ và tên {renderIconSort(sapXepKH, 'tenKhachHang')}
+                    </span>
+                  </th>
+                  <th className="tv2-th-sort" onClick={() => doiSapXepCotKH('diaChi')}>
+                    <span className="tv2-th-inner">
+                      Địa chỉ {renderIconSort(sapXepKH, 'diaChi')}
+                    </span>
+                  </th>
+                  <th className="tv2-th-sort" onClick={() => doiSapXepCotKH('soDienThoai')}>
+                    <span className="tv2-th-inner">
+                      Số điện thoại {renderIconSort(sapXepKH, 'soDienThoai')}
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {dsKH.length === 0 ? (
+                {dsKHHienThi.length === 0 ? (
                   <tr>
-                    <td colSpan="4" style={{ textAlign: 'center', padding: '28px', color: '#94a3b8' }}>
-                      Không tìm thấy khách hàng nào
+                    <td colSpan={4} className="tv2-empty">
+                      Không tìm thấy khách hàng phù hợp
                     </td>
                   </tr>
                 ) : (
-                  dsKH.map((kh) => (
+                  dsKHHienThi.map((kh) => (
                     <tr
                       key={kh.maKhachHang}
-                      className={dangChonKH && formKH.maKhachHang === kh.maKhachHang ? 'selected' : ''}
+                      className={formKH.maKhachHang === kh.maKhachHang ? 'selected' : ''}
                       onClick={() => chonKhachHang(kh)}
                     >
                       <td>
                         <span className="tv2-code-pill">{kh.maKhachHang}</span>
                       </td>
-                      <td style={{ fontWeight: 500, color: '#0f172a' }}>{kh.tenKhachHang}</td>
-                      <td>{kh.diaChi || '-'}</td>
-                      <td>{kh.soDienThoai || '-'}</td>
+                      <td style={{ fontWeight: 600 }}>{kh.tenKhachHang}</td>
+                      <td>{kh.diaChi || '—'}</td>
+                      <td>{kh.soDienThoai || '—'}</td>
                     </tr>
                   ))
                 )}
@@ -567,29 +435,31 @@ export default function KhachHangDichVuPage() {
           </div>
         </div>
 
-        {/* Form Khách hàng */}
+        {/* Form Thông tin khách hàng */}
         <div className="tv2-card">
           <div className="tv2-card-header">
             <div className="tv2-header-title">
-              <span>{dangChonKH ? `Chỉnh sửa: ${formKH.maKhachHang}` : 'Thông tin khách hàng'}</span>
+              <span>Thông tin khách hàng</span>
             </div>
           </div>
+
           <div className="tv2-form-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '10px' }}>
+            <div className="tv2-form-row-2">
               <div className="tv2-field">
                 <label>Mã khách hàng</label>
                 <input
+                  type="text"
                   value={formKH.maKhachHang}
-                  disabled
                   placeholder="Tự động sinh"
+                  disabled
                 />
               </div>
               <div className="tv2-field">
                 <label>Số điện thoại</label>
                 <input
-                  value={formKH.soDienThoai}
-                  maxLength={15}
+                  type="text"
                   placeholder="VD: 0901234567"
+                  value={formKH.soDienThoai}
                   onChange={(e) => setFormKH({ ...formKH, soDienThoai: e.target.value })}
                 />
               </div>
@@ -598,8 +468,9 @@ export default function KhachHangDichVuPage() {
             <div className="tv2-field">
               <label>Tên khách hàng</label>
               <input
-                value={formKH.tenKhachHang}
+                type="text"
                 placeholder="Nhập họ và tên khách hàng"
+                value={formKH.tenKhachHang}
                 onChange={(e) => setFormKH({ ...formKH, tenKhachHang: e.target.value })}
               />
             </div>
@@ -607,23 +478,39 @@ export default function KhachHangDichVuPage() {
             <div className="tv2-field">
               <label>Địa chỉ</label>
               <input
-                value={formKH.diaChi}
+                type="text"
                 placeholder="Nhập địa chỉ liên hệ"
+                value={formKH.diaChi}
                 onChange={(e) => setFormKH({ ...formKH, diaChi: e.target.value })}
               />
             </div>
 
             <div className="tv2-actions">
-              <button className="tv2-btn tv2-btn-primary" onClick={xuLyThemKH}>
+              <button
+                type="button"
+                className="tv2-btn tv2-btn-primary"
+                onClick={xuLyThemKH}
+                disabled={dangChonKH}
+              >
                 <Plus size={15} /> Thêm
               </button>
-              <button className="tv2-btn tv2-btn-amber" onClick={xuLySuaKH}>
+              <button
+                type="button"
+                className="tv2-btn tv2-btn-amber"
+                onClick={xuLySuaKH}
+                disabled={!dangChonKH}
+              >
                 <Pencil size={15} /> Sửa
               </button>
-              <button className="tv2-btn tv2-btn-danger" onClick={xuLyXoaKH}>
+              <button
+                type="button"
+                className="tv2-btn tv2-btn-danger"
+                onClick={xuLyXoaKH}
+                disabled={!dangChonKH}
+              >
                 <Trash2 size={15} /> Xóa
               </button>
-              <button className="tv2-btn tv2-btn-ghost" onClick={resetKhachHang}>
+              <button type="button" className="tv2-btn tv2-btn-ghost" onClick={resetKhachHang}>
                 <RotateCcw size={15} /> Làm mới
               </button>
             </div>
@@ -631,45 +518,55 @@ export default function KhachHangDichVuPage() {
         </div>
       </div>
 
-      {/* DỊCH VỤ */}
+      {/* ==================== PHẦN 2: DỊCH VỤ ==================== */}
       <div className="tv2-section">
         <div className="tv2-card">
           <div className="tv2-card-header">
             <div className="tv2-header-title">
               <Sparkles size={18} color="#26596a" />
               <span>Danh mục dịch vụ</span>
-              <span className="tv2-count-badge">{dsDV.length}</span>
+              <span className="tv2-count-badge">
+                {tuKhoaDV.trim() ? `${dsDVHienThi.length} / ${dsDV.length}` : dsDV.length}
+              </span>
             </div>
 
-            <div className="tv2-search-bar">
+            <div className="tv2-toolbar">
               <div className="tv2-search-input-wrap">
-                <Search size={15} />
+                <Search size={14} className="tv2-search-icon" />
                 <input
+                  type="text"
                   className="tv2-search-input"
+                  placeholder="Tìm mã, tên dịch vụ, đơn giá..."
                   value={tuKhoaDV}
-                  placeholder="Tìm mã hoặc tên dịch vụ..."
                   onChange={(e) => setTuKhoaDV(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && taiDSDichVu(tuKhoaDV.trim())}
                 />
                 {tuKhoaDV && (
                   <button
+                    type="button"
                     className="tv2-clear-btn"
-                    title="Xóa tìm kiếm"
-                    onClick={() => {
-                      setTuKhoaDV('');
-                      taiDSDichVu('');
-                    }}
+                    onClick={() => setTuKhoaDV('')}
                   >
                     <X size={14} />
                   </button>
                 )}
               </div>
-              <button
-                className="tv2-btn tv2-btn-primary"
-                onClick={() => taiDSDichVu(tuKhoaDV.trim())}
+
+              <select
+                className="tv2-sort-select"
+                value={`${sapXepDV.truong}_${sapXepDV.chieu}`}
+                onChange={(e) => {
+                  const [truong, chieu] = e.target.value.split('_');
+                  setSapXepDV({ truong, chieu });
+                }}
+                title="Sắp xếp danh mục dịch vụ"
               >
-                Tìm
-              </button>
+                <option value="maDichVu_asc">Mã DV: Tăng dần</option>
+                <option value="maDichVu_desc">Mã DV: Giảm dần</option>
+                <option value="tenDichVu_asc">Tên DV: A → Z</option>
+                <option value="tenDichVu_desc">Tên DV: Z → A</option>
+                <option value="giaDichVu_asc">Đơn giá: Thấp → Cao</option>
+                <option value="giaDichVu_desc">Đơn giá: Cao → Thấp</option>
+              </select>
             </div>
           </div>
 
@@ -677,33 +574,47 @@ export default function KhachHangDichVuPage() {
             <table className="tv2-table">
               <thead>
                 <tr>
-                  <th style={{ width: '110px' }}>Mã DV</th>
-                  <th>Tên dịch vụ</th>
-                  <th style={{ width: '160px', textAlign: 'right' }}>Đơn giá</th>
+                  <th className="tv2-th-sort" onClick={() => doiSapXepCotDV('maDichVu')}>
+                    <span className="tv2-th-inner">
+                      Mã DV {renderIconSort(sapXepDV, 'maDichVu')}
+                    </span>
+                  </th>
+                  <th className="tv2-th-sort" onClick={() => doiSapXepCotDV('tenDichVu')}>
+                    <span className="tv2-th-inner">
+                      Tên dịch vụ {renderIconSort(sapXepDV, 'tenDichVu')}
+                    </span>
+                  </th>
+                  <th
+                    className="tv2-th-sort"
+                    style={{ textAlign: 'right' }}
+                    onClick={() => doiSapXepCotDV('giaDichVu')}
+                  >
+                    <span className="tv2-th-inner" style={{ justifyContent: 'flex-end' }}>
+                      Đơn giá {renderIconSort(sapXepDV, 'giaDichVu')}
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {dsDV.length === 0 ? (
+                {dsDVHienThi.length === 0 ? (
                   <tr>
-                    <td colSpan="3" style={{ textAlign: 'center', padding: '28px', color: '#94a3b8' }}>
-                      Không tìm thấy dịch vụ nào
+                    <td colSpan={3} className="tv2-empty">
+                      Không tìm thấy dịch vụ phù hợp
                     </td>
                   </tr>
                 ) : (
-                  dsDV.map((dv) => (
+                  dsDVHienThi.map((dv) => (
                     <tr
                       key={dv.maDichVu}
-                      className={dangChonDV && formDV.maDichVu === dv.maDichVu ? 'selected' : ''}
+                      className={formDV.maDichVu === dv.maDichVu ? 'selected' : ''}
                       onClick={() => chonDichVu(dv)}
                     >
                       <td>
                         <span className="tv2-code-pill">{dv.maDichVu}</span>
                       </td>
-                      <td style={{ fontWeight: 500, color: '#0f172a' }}>{dv.tenDichVu}</td>
+                      <td style={{ fontWeight: 600 }}>{dv.tenDichVu}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <span className="tv2-price-text">
-                          {Number(dv.giaDichVu || 0).toLocaleString('vi-VN')} đ
-                        </span>
+                        <span className="tv2-price-text">{dinhDangTien(dv.giaDichVu)}</span>
                       </td>
                     </tr>
                   ))
@@ -713,21 +624,23 @@ export default function KhachHangDichVuPage() {
           </div>
         </div>
 
-        {/* Form Dịch vụ */}
+        {/* Form Thông tin dịch vụ */}
         <div className="tv2-card">
           <div className="tv2-card-header">
             <div className="tv2-header-title">
-              <span>{dangChonDV ? `Chỉnh sửa: ${formDV.maDichVu}` : 'Thông tin dịch vụ'}</span>
+              <span>Thông tin dịch vụ</span>
             </div>
           </div>
+
           <div className="tv2-form-body">
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr', gap: '10px' }}>
+            <div className="tv2-form-row-2">
               <div className="tv2-field">
                 <label>Mã dịch vụ</label>
                 <input
+                  type="text"
                   value={formDV.maDichVu}
-                  disabled
                   placeholder="Tự động sinh"
+                  disabled
                 />
               </div>
               <div className="tv2-field">
@@ -735,8 +648,8 @@ export default function KhachHangDichVuPage() {
                 <input
                   type="number"
                   min="0"
-                  value={formDV.giaDichVu}
                   placeholder="VD: 150000"
+                  value={formDV.giaDichVu}
                   onChange={(e) => setFormDV({ ...formDV, giaDichVu: e.target.value })}
                 />
               </div>
@@ -745,23 +658,39 @@ export default function KhachHangDichVuPage() {
             <div className="tv2-field">
               <label>Tên dịch vụ</label>
               <input
-                value={formDV.tenDichVu}
+                type="text"
                 placeholder="Nhập tên dịch vụ"
+                value={formDV.tenDichVu}
                 onChange={(e) => setFormDV({ ...formDV, tenDichVu: e.target.value })}
               />
             </div>
 
             <div className="tv2-actions">
-              <button className="tv2-btn tv2-btn-primary" onClick={xuLyThemDV}>
+              <button
+                type="button"
+                className="tv2-btn tv2-btn-primary"
+                onClick={xuLyThemDV}
+                disabled={dangChonDV}
+              >
                 <Plus size={15} /> Thêm
               </button>
-              <button className="tv2-btn tv2-btn-amber" onClick={xuLySuaDV}>
+              <button
+                type="button"
+                className="tv2-btn tv2-btn-amber"
+                onClick={xuLySuaDV}
+                disabled={!dangChonDV}
+              >
                 <Pencil size={15} /> Sửa
               </button>
-              <button className="tv2-btn tv2-btn-danger" onClick={xuLyXoaDV}>
+              <button
+                type="button"
+                className="tv2-btn tv2-btn-danger"
+                onClick={xuLyXoaDV}
+                disabled={!dangChonDV}
+              >
                 <Trash2 size={15} /> Xóa
               </button>
-              <button className="tv2-btn tv2-btn-ghost" onClick={resetDichVu}>
+              <button type="button" className="tv2-btn tv2-btn-ghost" onClick={resetDichVu}>
                 <RotateCcw size={15} /> Làm mới
               </button>
             </div>

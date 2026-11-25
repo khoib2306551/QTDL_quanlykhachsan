@@ -50,7 +50,7 @@ export const tv1Api = {
 
 
 
-// KHÁCH HÀNG, DỊCH VỤ & THUÊ PHÒNG (FUNCTION & STORED PROC)
+// KHÁCH HÀNG, DỊCH VỤ & THUÊ PHÒNG
 export const tv2Api = {
   // Khách hàng
   layDSKH: (tuKhoa = '') => apiClient.get('/khach-hang', { params: { tuKhoa } }),

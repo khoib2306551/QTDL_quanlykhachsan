@@ -54,6 +54,11 @@ public class ThuePhongService {
         if (req.getNgayNhan() == null || req.getNgayTra() == null) {
             throw new IllegalArgumentException("Vui lòng nhập đầy đủ ngày nhận và ngày trả phòng");
         }
+
+        LocalDate ngayThue = req.getNgayThue() != null ? req.getNgayThue() : LocalDate.now();
+        if (req.getNgayNhan().isBefore(ngayThue)) {
+            throw new IllegalArgumentException("Ngày nhận phòng phải lớn hơn hoặc bằng ngày thuê");
+        }
         if (req.getNgayTra().isBefore(req.getNgayNhan())) {
             throw new IllegalArgumentException("Ngày trả phòng phải lớn hơn hoặc bằng ngày nhận phòng");
         }
@@ -85,7 +90,7 @@ public class ThuePhongService {
                 .maThue(maThue)
                 .khachHang(kh)
                 .phong(phong)
-                .ngayThue(req.getNgayThue() != null ? req.getNgayThue() : LocalDate.now())
+                .ngayThue(ngayThue)
                 .ngayNhan(req.getNgayNhan())
                 .ngayTra(req.getNgayTra())
                 .trangThai(trangThaiMoi)
@@ -96,7 +101,6 @@ public class ThuePhongService {
 
     @Transactional
     public ThuePhong capNhatPhieuThue(String maThue, ThuePhongRequest req) {
-
         ThuePhong hienTai = thuePhongRepository.findById(maThue)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiếu thuê có mã " + maThue));
 
@@ -105,9 +109,13 @@ public class ThuePhongService {
             throw new IllegalArgumentException("Phiếu thuê đã trả phòng, không thể chỉnh sửa");
         }
 
-        // Kiểm tra ngày trả >= ngày nhận
+        // Kiểm tra ngày nhận >= ngày thuê và ngày trả >= ngày nhận
+        LocalDate ngayThueMoi = req.getNgayThue() != null ? req.getNgayThue() : hienTai.getNgayThue();
         LocalDate ngayNhanMoi = req.getNgayNhan() != null ? req.getNgayNhan() : hienTai.getNgayNhan();
         LocalDate ngayTraMoi = req.getNgayTra() != null ? req.getNgayTra() : hienTai.getNgayTra();
+        if (ngayThueMoi != null && ngayNhanMoi != null && ngayNhanMoi.isBefore(ngayThueMoi)) {
+            throw new IllegalArgumentException("Ngày nhận phòng phải lớn hơn hoặc bằng ngày thuê");
+        }
         if (ngayNhanMoi != null && ngayTraMoi != null && ngayTraMoi.isBefore(ngayNhanMoi)) {
             throw new IllegalArgumentException("Ngày trả phòng phải lớn hơn hoặc bằng ngày nhận phòng");
         }
@@ -142,7 +150,7 @@ public class ThuePhongService {
             }
         }
 
-        if (req.getNgayThue() != null) hienTai.setNgayThue(req.getNgayThue());
+        hienTai.setNgayThue(ngayThueMoi);
         hienTai.setNgayNhan(ngayNhanMoi);
         hienTai.setNgayTra(ngayTraMoi);
         hienTai.setTrangThai(trangThaiMoi);

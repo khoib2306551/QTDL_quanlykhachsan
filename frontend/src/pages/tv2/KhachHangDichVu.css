@@ -1,0 +1,350 @@
+.tv2-modern {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 4px;
+  color: #1e293b;
+}
+
+.tv2-modern .tv2-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.tv2-modern .tv2-toast.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.tv2-modern .tv2-toast.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.tv2-modern .tv2-section {
+  display: grid;
+  grid-template-columns: 1.65fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .tv2-modern .tv2-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tv2-modern .tv2-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+.tv2-modern .tv2-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+}
+
+.tv2-modern .tv2-header-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.tv2-modern .tv2-count-badge {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.tv2-modern .tv2-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tv2-modern .tv2-search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tv2-modern .tv2-search-input-wrap .tv2-search-icon {
+  position: absolute;
+  left: 10px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.tv2-modern .tv2-search-input {
+  padding: 7px 28px 7px 31px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font-size: 13px;
+  width: 220px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tv2-modern .tv2-search-input:focus {
+  border-color: #2f667a;
+  box-shadow: 0 0 0 3px rgba(47, 102, 122, 0.12);
+}
+
+.tv2-modern .tv2-clear-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 0;
+}
+
+.tv2-modern .tv2-clear-btn:hover {
+  color: #475569;
+}
+
+.tv2-modern .tv2-sort-select {
+  padding: 7px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font-size: 12.5px;
+  color: #334155;
+  background: #ffffff;
+  outline: none;
+  cursor: pointer;
+}
+
+.tv2-modern .tv2-sort-select:focus {
+  border-color: #2f667a;
+}
+
+.tv2-modern .tv2-table-scroll {
+  max-height: 310px;
+  overflow-y: auto;
+}
+
+.tv2-modern .tv2-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.tv2-modern .tv2-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 11px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tv2-modern .tv2-th-sort {
+  cursor: pointer;
+  user-select: none;
+}
+
+.tv2-modern .tv2-th-sort:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.tv2-modern .tv2-th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tv2-modern .tv2-sort-idle {
+  color: #cbd5e1;
+}
+
+.tv2-modern .tv2-sort-active {
+  color: #26596a;
+}
+
+.tv2-modern .tv2-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+.tv2-modern .tv2-table tbody tr {
+  transition: background-color 0.12s;
+  cursor: pointer;
+}
+
+.tv2-modern .tv2-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.tv2-modern .tv2-table tbody tr.selected {
+  background-color: #f0f9ff;
+}
+
+.tv2-modern .tv2-empty {
+  text-align: center;
+  color: #94a3b8;
+  padding: 28px 16px;
+  cursor: default;
+}
+
+.tv2-modern .tv2-code-pill {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: #26596a;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.tv2-modern .tv2-price-text {
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.tv2-modern .tv2-form-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.tv2-modern .tv2-form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tv2-modern .tv2-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tv2-modern .tv2-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.tv2-modern .tv2-field input {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  font-size: 13.5px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.tv2-modern .tv2-field input:focus {
+  border-color: #2f667a;
+  box-shadow: 0 0 0 3px rgba(47, 102, 122, 0.12);
+}
+
+.tv2-modern .tv2-field input:disabled {
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: not-allowed;
+}
+
+.tv2-modern .tv2-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.tv2-modern .tv2-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tv2-modern .tv2-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tv2-modern .tv2-btn-primary {
+  background: #26596a;
+  color: #ffffff;
+}
+
+.tv2-modern .tv2-btn-primary:hover:not(:disabled) {
+  background: #1e4755;
+}
+
+.tv2-modern .tv2-btn-amber {
+  background: #f59e0b;
+  color: #ffffff;
+}
+
+.tv2-modern .tv2-btn-amber:hover:not(:disabled) {
+  background: #d97706;
+}
+
+.tv2-modern .tv2-btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.tv2-modern .tv2-btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.tv2-modern .tv2-btn-ghost {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #e2e8f0;
+}
+
+.tv2-modern .tv2-btn-ghost:hover:not(:disabled) {
+  background: #e2e8f0;
+  color: #1e293b;
+}

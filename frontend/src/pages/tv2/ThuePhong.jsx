@@ -1,6 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { CalendarCheck, Filter, RotateCcw, Plus, Pencil, Trash2, Clock } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  CalendarCheck,
+  Filter,
+  RotateCcw,
+  Plus,
+  Pencil,
+  Trash2,
+  Clock,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  X,
+} from 'lucide-react';
 import { tv1Api, tv2Api } from '../../services/api';
+import './ThuePhong.css';
 
 const FORM_MAC_DINH = {
   maThue: '',
@@ -25,6 +39,18 @@ const layThongBaoLoi = (err, macDinh) => {
   return err?.response?.data?.message || err?.response?.data?.error || macDinh;
 };
 
+const chuanHoa = (str = '') =>
+  String(str)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
+
+const soSanhChuoi = (a = '', b = '') =>
+  String(a || '').localeCompare(String(b || ''), 'vi', { numeric: true, sensitivity: 'base' });
+
 export default function ThuePhongPage() {
   const [dsThue, setDsThue] = useState([]);
   const [dsKH, setDsKH] = useState([]);
@@ -33,10 +59,18 @@ export default function ThuePhongPage() {
   const [dangChon, setDangChon] = useState(false);
   const [daTraPhong, setDaTraPhong] = useState(false);
   const [soNgayLuuTru, setSoNgayLuuTru] = useState(0);
+
+  // Lọc theo Stored Procedure sp_DanhSachDatPhongTheoThoiGian
   const [boLocNgay, setBoLocNgay] = useState({
     ngayBatDau: '2026-11-01',
     ngayKetThuc: '2026-11-30',
   });
+  const [dangLocThoiGian, setDangLocThoiGian] = useState(false);
+
+  // Tìm kiếm + Sắp xếp trên bảng phiếu thuê
+  const [tuKhoa, setTuKhoa] = useState('');
+  const [sapXep, setSapXep] = useState({ truong: 'maThue', chieu: 'asc' });
+
   const [thongBao, setThongBao] = useState({ noiDung: '', loai: '' });
 
   const hienThongBao = (noiDung, loai = 'success') => {
@@ -48,6 +82,7 @@ export default function ThuePhongPage() {
     try {
       const res = await tv2Api.layDSThuePhong();
       setDsThue(tachMang(res));
+      setDangLocThoiGian(false);
     } catch (e) {
       console.error('Lỗi tải danh sách thuê phòng:', e);
       hienThongBao(layThongBaoLoi(e, 'Không tải được danh sách thuê phòng'), 'error');
@@ -90,6 +125,42 @@ export default function ThuePhongPage() {
     }
   }, [form.ngayNhan, form.ngayTra]);
 
+  const dsThueHienThi = useMemo(() => {
+    const kw = chuanHoa(tuKhoa);
+    const ketQua = !kw
+      ? dsThue
+      : dsThue.filter((tp) =>
+          chuanHoa(
+            `${tp.maThue || ''} ${tp.maKhachHang || ''} ${tp.tenKhachHang || ''} ${tp.soDienThoai || ''} ${tp.maPhong || ''} ${tp.soPhong || ''} ${tp.tenLoai || ''} ${tp.trangThai || ''} ${tp.ngayThue || ''} ${tp.ngayNhan || ''} ${tp.ngayTra || ''}`
+          ).includes(kw)
+        );
+
+    const heSo = sapXep.chieu === 'asc' ? 1 : -1;
+    return [...ketQua].sort((a, b) => {
+      if (sapXep.truong === 'soNgayLuuTru') {
+        return (Number(a.soNgayLuuTru ?? 0) - Number(b.soNgayLuuTru ?? 0)) * heSo;
+      }
+      return soSanhChuoi(a[sapXep.truong], b[sapXep.truong]) * heSo;
+    });
+  }, [dsThue, tuKhoa, sapXep]);
+
+  const doiSapXepCot = (truong) => {
+    setSapXep((prev) =>
+      prev.truong === truong
+        ? { truong, chieu: prev.chieu === 'asc' ? 'desc' : 'asc' }
+        : { truong, chieu: 'asc' }
+    );
+  };
+
+  const renderIconSort = (truong) => {
+    if (sapXep.truong !== truong) return <ArrowUpDown size={13} className="tv2-sort-idle" />;
+    return sapXep.chieu === 'asc' ? (
+      <ArrowUp size={13} className="tv2-sort-active" />
+    ) : (
+      <ArrowDown size={13} className="tv2-sort-active" />
+    );
+  };
+
   const chonPhieuThue = (tp) => {
     setForm({
       maThue: tp.maThue || '',
@@ -113,12 +184,17 @@ export default function ThuePhongPage() {
   };
 
   const xuLyThem = async () => {
+    if (dangChon) return;
     if (!form.maKhachHang.trim() || !form.maPhong.trim()) {
       hienThongBao('Vui lòng chọn đủ khách hàng và phòng', 'error');
       return;
     }
     if (!form.ngayThue || !form.ngayNhan || !form.ngayTra) {
       hienThongBao('Vui lòng chọn đầy đủ ngày thuê, ngày nhận và ngày trả', 'error');
+      return;
+    }
+    if (form.ngayNhan < form.ngayThue) {
+      hienThongBao('Ngày nhận phòng phải lớn hơn hoặc bằng ngày thuê', 'error');
       return;
     }
     if (form.ngayTra < form.ngayNhan) {
@@ -147,6 +223,10 @@ export default function ThuePhongPage() {
     }
     if (!form.ngayThue || !form.ngayNhan || !form.ngayTra) {
       hienThongBao('Vui lòng chọn đầy đủ ngày thuê, ngày nhận và ngày trả', 'error');
+      return;
+    }
+    if (form.ngayNhan < form.ngayThue) {
+      hienThongBao('Ngày nhận phòng phải lớn hơn hoặc bằng ngày thuê', 'error');
       return;
     }
     if (form.ngayTra < form.ngayNhan) {
@@ -196,6 +276,7 @@ export default function ThuePhongPage() {
       const res = await tv2Api.timTheoThoiGian(boLocNgay.ngayBatDau, boLocNgay.ngayKetThuc);
       const ketQua = tachMang(res);
       setDsThue(ketQua);
+      setDangLocThoiGian(true);
       hienThongBao(`Tìm thấy ${ketQua.length} phiếu thuê trong khoảng thời gian đã chọn`);
     } catch (e) {
       console.error('Lỗi lọc theo thời gian:', e);
@@ -215,283 +296,34 @@ export default function ThuePhongPage() {
 
   return (
     <div className="tv2-rental">
-      <style>{`
-        .tv2-rental {
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-          padding: 4px;
-          color: #1e293b;
-        }
-        .tv2-toast {
-          padding: 12px 16px;
-          border-radius: 8px;
-          font-size: 13.5px;
-          font-weight: 500;
-        }
-        .tv2-toast.success {
-          background: #ecfdf5;
-          color: #065f46;
-          border: 1px solid #a7f3d0;
-        }
-        .tv2-toast.error {
-          background: #fef2f2;
-          color: #991b1b;
-          border: 1px solid #fecaca;
-        }
-        .tv2-top-layout {
-          display: grid;
-          grid-template-columns: 1.5fr 1fr;
-          gap: 18px;
-          align-items: stretch;
-        }
-        @media (max-width: 1100px) {
-          .tv2-top-layout {
-            grid-template-columns: 1fr;
-          }
-        }
-        .tv2-card {
-          background: #ffffff;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
-          box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-          overflow: hidden;
-        }
-        .tv2-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 14px 18px;
-          border-bottom: 1px solid #f1f5f9;
-        }
-        .tv2-header-title {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 15px;
-          font-weight: 600;
-          color: #0f172a;
-        }
-        .tv2-form-grid {
-          padding: 18px;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 13px 16px;
-        }
-        .tv2-field {
-          display: flex;
-          flex-direction: column;
-          gap: 5px;
-        }
-        .tv2-field.full {
-          grid-column: 1 / -1;
-        }
-        .tv2-field label {
-          font-size: 12.5px;
-          font-weight: 600;
-          color: #475569;
-        }
-        .tv2-field input,
-        .tv2-field select {
-          padding: 8px 11px;
-          border: 1px solid #cbd5e1;
-          border-radius: 7px;
-          font-size: 13.5px;
-          color: #0f172a;
-          background: #ffffff;
-          outline: none;
-          transition: border-color 0.15s, box-shadow 0.15s;
-        }
-        .tv2-field input:focus,
-        .tv2-field select:focus {
-          border-color: #2f667a;
-          box-shadow: 0 0 0 3px rgba(47, 102, 122, 0.12);
-        }
-        .tv2-field input:disabled,
-        .tv2-field select:disabled {
-          background: #f1f5f9;
-          color: #64748b;
-          cursor: not-allowed;
-        }
-        .tv2-stay-box {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          background: #f0f9ff;
-          border: 1px solid #bae6fd;
-          color: #0369a1;
-          padding: 8px 12px;
-          border-radius: 7px;
-          font-size: 13.5px;
-          font-weight: 600;
-        }
-        .tv2-actions {
-          grid-column: 1 / -1;
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 8px;
-          padding-top: 10px;
-          border-top: 1px solid #f1f5f9;
-        }
-        .tv2-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 8px 15px;
-          border-radius: 7px;
-          font-size: 13px;
-          font-weight: 600;
-          border: 1px solid transparent;
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-        .tv2-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-        .tv2-btn-primary {
-          background: #26596a;
-          color: #ffffff;
-        }
-        .tv2-btn-primary:hover:not(:disabled) {
-          background: #1e4755;
-        }
-        .tv2-btn-amber {
-          background: #f59e0b;
-          color: #ffffff;
-        }
-        .tv2-btn-amber:hover:not(:disabled) {
-          background: #d97706;
-        }
-        .tv2-btn-danger {
-          background: #ef4444;
-          color: #ffffff;
-        }
-        .tv2-btn-danger:hover:not(:disabled) {
-          background: #dc2626;
-        }
-        .tv2-btn-ghost {
-          background: #f1f5f9;
-          color: #475569;
-          border-color: #e2e8f0;
-        }
-        .tv2-btn-ghost:hover:not(:disabled) {
-          background: #e2e8f0;
-          color: #1e293b;
-        }
-        .tv2-lock-note {
-          font-size: 12.5px;
-          color: #b45309;
-          margin-left: auto;
-        }
-        .tv2-table-scroll {
-          max-height: 360px;
-          overflow-y: auto;
-        }
-        .tv2-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 13.5px;
-        }
-        .tv2-table th {
-          background: #f8fafc;
-          color: #475569;
-          font-weight: 600;
-          font-size: 12.5px;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
-          padding: 11px 14px;
-          border-bottom: 1px solid #e2e8f0;
-          text-align: left;
-          position: sticky;
-          top: 0;
-        }
-        .tv2-table td {
-          padding: 11px 14px;
-          border-bottom: 1px solid #f1f5f9;
-          color: #334155;
-        }
-        .tv2-table tbody tr {
-          cursor: pointer;
-          transition: background-color 0.12s;
-        }
-        .tv2-table tbody tr:hover {
-          background-color: #f8fafc;
-        }
-        .tv2-table tbody tr.selected {
-          background-color: #f0f9ff;
-        }
-        .tv2-code-pill {
-          display: inline-block;
-          font-weight: 600;
-          font-size: 12.5px;
-          color: #26596a;
-          background: #e0f2fe;
-          padding: 2px 8px;
-          border-radius: 5px;
-        }
-        .tv2-days-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          background: #f1f5f9;
-          color: #0f172a;
-          font-weight: 600;
-          font-size: 12.5px;
-          padding: 3px 9px;
-          border-radius: 6px;
-        }
-        .tv2-status {
-          display: inline-block;
-          font-size: 12px;
-          font-weight: 600;
-          padding: 3px 10px;
-          border-radius: 999px;
-        }
-        .tv2-status-booked {
-          background: #fef3c7;
-          color: #b45309;
-        }
-        .tv2-status-active {
-          background: #dcfce7;
-          color: #15803d;
-        }
-        .tv2-status-done {
-          background: #e2e8f0;
-          color: #475569;
-        }
-      `}</style>
-
       {thongBao.noiDung && (
         <div className={`tv2-toast ${thongBao.loai}`}>
           <span>{thongBao.noiDung}</span>
+          <button
+            type="button"
+            className="tv2-clear-btn"
+            style={{ position: 'static', color: 'inherit' }}
+            onClick={() => setThongBao({ noiDung: '', loai: '' })}
+          >
+            <X size={15} />
+          </button>
         </div>
       )}
 
+      {/* ==================== HÀNG TRÊN: FORM + LỌC STORED PROCEDURE ==================== */}
       <div className="tv2-top-layout">
-        {/* Khung Thông tin phiếu thuê */}
         <div className="tv2-card">
           <div className="tv2-card-header">
             <div className="tv2-header-title">
               <CalendarCheck size={18} color="#26596a" />
-              <span>{dangChon ? `Phiếu thuê: ${form.maThue}` : 'Thông tin thuê phòng'}</span>
-            </div>
-            <div className="tv2-stay-box">
-              <Clock size={15} style={{ marginRight: 6 }} />
-              <span>Lưu trú: {soNgayLuuTru} ngày</span>
+              <span>Thông tin phiếu thuê phòng</span>
             </div>
           </div>
 
           <div className="tv2-form-grid">
             <div className="tv2-field">
               <label>Mã phiếu thuê</label>
-              <input
-                value={form.maThue}
-                disabled
-                placeholder="Tự động sinh khi thêm mới"
-              />
+              <input type="text" value={form.maThue} placeholder="Tự động sinh" disabled />
             </div>
 
             <div className="tv2-field">
@@ -531,18 +363,21 @@ export default function ThuePhongPage() {
                 onChange={(e) => setForm({ ...form, maPhong: e.target.value })}
               >
                 <option value="">-- Chọn phòng --</option>
-                {dsPhong.map((p) => (
-                  <option key={p.maPhong} value={p.maPhong}>
-                    {p.maPhong}
-                    {p.soPhong ? ` - Phòng ${p.soPhong}` : ''}
-                    {p.trangThai ? ` (${p.trangThai})` : ''}
-                  </option>
-                ))}
+                {dsPhong.map((p) => {
+                  const dangSuDung = p.trangThai === 'Đang sử dụng' && p.maPhong !== form.maPhong;
+                  const tenLoai = p.loaiPhong?.tenLoai || p.tenLoai || '';
+                  return (
+                    <option key={p.maPhong} value={p.maPhong} disabled={dangSuDung}>
+                      Phòng {p.soPhong}
+                      {tenLoai ? ` - ${tenLoai}` : ''} ({p.trangThai})
+                    </option>
+                  );
+                })}
               </select>
             </div>
 
             <div className="tv2-field">
-              <label>Ngày đặt thuê</label>
+              <label>Ngày thuê</label>
               <input
                 type="date"
                 value={form.ngayThue}
@@ -552,19 +387,29 @@ export default function ThuePhongPage() {
             </div>
 
             <div className="tv2-field">
+              <label>Số ngày lưu trú</label>
+              <div className="tv2-stay-box">
+                <span>Tự động tính</span>
+                <span>{soNgayLuuTru} ngày</span>
+              </div>
+            </div>
+
+            <div className="tv2-field">
               <label>Ngày nhận phòng</label>
               <input
                 type="date"
+                min={form.ngayThue || undefined}
                 value={form.ngayNhan}
                 disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, ngayNhan: e.target.value })}
               />
             </div>
 
-            <div className="tv2-field full">
+            <div className="tv2-field">
               <label>Ngày trả phòng</label>
               <input
                 type="date"
+                min={form.ngayNhan || form.ngayThue || undefined}
                 value={form.ngayTra}
                 disabled={daTraPhong}
                 onChange={(e) => setForm({ ...form, ngayTra: e.target.value })}
@@ -573,46 +418,48 @@ export default function ThuePhongPage() {
 
             <div className="tv2-actions">
               <button
+                type="button"
                 className="tv2-btn tv2-btn-primary"
                 onClick={xuLyThem}
                 disabled={dangChon}
-                title={dangChon ? 'Bấm Làm mới trước khi thêm phiếu mới' : ''}
               >
-                <Plus size={15} /> Thêm phiếu
+                <Plus size={15} /> Thêm
               </button>
               <button
+                type="button"
                 className="tv2-btn tv2-btn-amber"
                 onClick={xuLySua}
-                disabled={daTraPhong}
-                title={daTraPhong ? 'Phiếu đã trả phòng, không thể sửa' : ''}
+                disabled={!dangChon || daTraPhong}
               >
                 <Pencil size={15} /> Sửa
               </button>
-              <button className="tv2-btn tv2-btn-danger" onClick={xuLyXoa}>
+              <button
+                type="button"
+                className="tv2-btn tv2-btn-danger"
+                onClick={xuLyXoa}
+                disabled={!dangChon}
+              >
                 <Trash2 size={15} /> Xóa
               </button>
-              <button className="tv2-btn tv2-btn-ghost" onClick={taoMoiForm}>
+              <button type="button" className="tv2-btn tv2-btn-ghost" onClick={taoMoiForm}>
                 <RotateCcw size={15} /> Làm mới
               </button>
-              {daTraPhong && (
-                <span className="tv2-lock-note">Phiếu đã trả phòng, không thể chỉnh sửa</span>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Khung Lọc theo khoảng thời gian */}
+        {/* Khung lọc theo khoảng thời gian (Stored Procedure) */}
         <div className="tv2-card">
           <div className="tv2-card-header">
             <div className="tv2-header-title">
-              <Filter size={18} color="#26596a" />
+              <Filter size={17} color="#26596a" />
               <span>Tra cứu theo khoảng thời gian</span>
             </div>
           </div>
 
-          <div className="tv2-form-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div className="tv2-filter-body">
             <div className="tv2-field">
-              <label>Ngày nhận phòng từ</label>
+              <label>Từ ngày</label>
               <input
                 type="date"
                 value={boLocNgay.ngayBatDau}
@@ -621,7 +468,7 @@ export default function ThuePhongPage() {
             </div>
 
             <div className="tv2-field">
-              <label>Ngày trả phòng đến</label>
+              <label>Đến ngày</label>
               <input
                 type="date"
                 value={boLocNgay.ngayKetThuc}
@@ -629,40 +476,82 @@ export default function ThuePhongPage() {
               />
             </div>
 
-            <div className="tv2-actions" style={{ marginTop: '8px' }}>
-              <button className="tv2-btn tv2-btn-primary" onClick={locTheoThoiGian}>
-                <Filter size={15} /> Lọc danh sách
-              </button>
-              <button className="tv2-btn tv2-btn-ghost" onClick={taiDSThuePhong}>
-                Xem tất cả
-              </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
               <button
-                className="tv2-btn tv2-btn-ghost"
-                onClick={() => setBoLocNgay({ ngayBatDau: '', ngayKetThuc: '' })}
+                type="button"
+                className="tv2-btn tv2-btn-primary"
+                style={{ flex: 1 }}
+                onClick={locTheoThoiGian}
               >
-                Xóa ngày
+                <Filter size={15} /> Lọc theo thời gian
+              </button>
+              <button type="button" className="tv2-btn tv2-btn-ghost" onClick={taiDSThuePhong}>
+                <RotateCcw size={15} /> Tất cả
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bảng danh sách phiếu thuê */}
+      {/* ==================== BẢNG DANH SÁCH + TÌM KIẾM + SẮP XẾP ==================== */}
       <div className="tv2-card">
         <div className="tv2-card-header">
           <div className="tv2-header-title">
+            <Clock size={18} color="#26596a" />
             <span>Danh sách phiếu thuê phòng</span>
-            <span
-              style={{
-                background: '#f1f5f9',
-                color: '#475569',
-                fontSize: '12px',
-                padding: '2px 8px',
-                borderRadius: '999px',
-              }}
-            >
-              {dsThue.length} phiếu
+            <span className="tv2-count-badge">
+              {tuKhoa.trim() ? `${dsThueHienThi.length} / ${dsThue.length}` : dsThue.length}
             </span>
+            {dangLocThoiGian && (
+              <span className="tv2-sp-tag">
+                {boLocNgay.ngayBatDau} → {boLocNgay.ngayKetThuc}
+              </span>
+            )}
+          </div>
+
+          <div className="tv2-toolbar">
+            <div className="tv2-search-wrap">
+              <Search size={14} className="tv2-search-icon" />
+              <input
+                type="text"
+                className="tv2-search-input"
+                placeholder="Tìm mã thuê, khách, SĐT, phòng, trạng thái..."
+                value={tuKhoa}
+                onChange={(e) => setTuKhoa(e.target.value)}
+              />
+              {tuKhoa && (
+                <button
+                  type="button"
+                  className="tv2-clear-btn"
+                  onClick={() => setTuKhoa('')}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            <select
+              className="tv2-select-sm"
+              value={`${sapXep.truong}_${sapXep.chieu}`}
+              onChange={(e) => {
+                const [truong, chieu] = e.target.value.split('_');
+                setSapXep({ truong, chieu });
+              }}
+              title="Sắp xếp danh sách phiếu thuê"
+            >
+              <option value="maThue_asc">Mã thuê: Tăng dần</option>
+              <option value="maThue_desc">Mã thuê: Giảm dần</option>
+              <option value="ngayThue_desc">Ngày thuê: Mới nhất</option>
+              <option value="ngayThue_asc">Ngày thuê: Cũ nhất</option>
+              <option value="ngayNhan_desc">Ngày nhận: Mới nhất</option>
+              <option value="ngayNhan_asc">Ngày nhận: Cũ nhất</option>
+              <option value="ngayTra_desc">Ngày trả: Mới nhất</option>
+              <option value="ngayTra_asc">Ngày trả: Cũ nhất</option>
+              <option value="soNgayLuuTru_desc">Số ngày: Nhiều → Ít</option>
+              <option value="soNgayLuuTru_asc">Số ngày: Ít → Nhiều</option>
+              <option value="tenKhachHang_asc">Khách hàng: A → Z</option>
+              <option value="soPhong_asc">Số phòng: Tăng dần</option>
+            </select>
           </div>
         </div>
 
@@ -670,54 +559,67 @@ export default function ThuePhongPage() {
           <table className="tv2-table">
             <thead>
               <tr>
-                <th>Mã thuê</th>
-                <th>Khách hàng</th>
-                <th>Phòng</th>
-                <th>Ngày thuê</th>
-                <th>Ngày nhận</th>
-                <th>Ngày trả</th>
-                <th>Số ngày ở</th>
-                <th>Trạng thái</th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('maThue')}>
+                  <span className="tv2-th-inner">Mã thuê {renderIconSort('maThue')}</span>
+                </th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('tenKhachHang')}>
+                  <span className="tv2-th-inner">Khách hàng {renderIconSort('tenKhachHang')}</span>
+                </th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('soPhong')}>
+                  <span className="tv2-th-inner">Phòng {renderIconSort('soPhong')}</span>
+                </th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('ngayThue')}>
+                  <span className="tv2-th-inner">Ngày thuê {renderIconSort('ngayThue')}</span>
+                </th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('ngayNhan')}>
+                  <span className="tv2-th-inner">Ngày nhận {renderIconSort('ngayNhan')}</span>
+                </th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('ngayTra')}>
+                  <span className="tv2-th-inner">Ngày trả {renderIconSort('ngayTra')}</span>
+                </th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('soNgayLuuTru')}>
+                  <span className="tv2-th-inner">Số ngày {renderIconSort('soNgayLuuTru')}</span>
+                </th>
+                <th className="tv2-th-sort" onClick={() => doiSapXepCot('trangThai')}>
+                  <span className="tv2-th-inner">Trạng thái {renderIconSort('trangThai')}</span>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {dsThue.length === 0 ? (
+              {dsThueHienThi.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '28px', color: '#94a3b8' }}>
-                    Không có phiếu thuê phòng nào phù hợp
+                  <td colSpan={8} className="tv2-empty">
+                    Không tìm thấy phiếu thuê phòng phù hợp
                   </td>
                 </tr>
               ) : (
-                dsThue.map((tp) => (
+                dsThueHienThi.map((tp) => (
                   <tr
                     key={tp.maThue}
-                    className={dangChon && form.maThue === tp.maThue ? 'selected' : ''}
+                    className={form.maThue === tp.maThue ? 'selected' : ''}
                     onClick={() => chonPhieuThue(tp)}
                   >
                     <td>
                       <span className="tv2-code-pill">{tp.maThue}</span>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>
-                        {tp.tenKhachHang || tp.maKhachHang}
+                      <div style={{ fontWeight: 600 }}>{tp.tenKhachHang}</div>
+                      <div className="tv2-sub-text">
+                        {tp.maKhachHang}
+                        {tp.soDienThoai ? ` • ${tp.soDienThoai}` : ''}
                       </div>
-                      {tp.tenKhachHang && (
-                        <div style={{ fontSize: '12px', color: '#64748b' }}>{tp.maKhachHang}</div>
-                      )}
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>
-                        {tp.soPhong ? `Phòng ${tp.soPhong}` : tp.maPhong}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>
-                        {tp.tenLoai ? `${tp.maPhong} • ${tp.tenLoai}` : tp.maPhong}
-                      </div>
+                      <div style={{ fontWeight: 600 }}>Phòng {tp.soPhong}</div>
+                      {tp.tenLoai && <div className="tv2-sub-text">{tp.tenLoai}</div>}
                     </td>
                     <td>{tp.ngayThue}</td>
                     <td>{tp.ngayNhan}</td>
                     <td>{tp.ngayTra}</td>
                     <td>
-                      <span className="tv2-days-badge">{tp.soNgayLuuTru ?? 1} ngày</span>
+                      <span className="tv2-days-badge">
+                        <Clock size={12} /> {tp.soNgayLuuTru} ngày
+                      </span>
                     </td>
                     <td>{renderBadgeTrangThai(tp.trangThai)}</td>
                   </tr>
