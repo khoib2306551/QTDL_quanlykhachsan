@@ -4,8 +4,6 @@ USE quan_ly_khach_san;
 
 SET GLOBAL log_bin_trust_function_creators = 1;
 
-
-
 CREATE TABLE LoaiPhong (
     MaLoai VARCHAR(10) PRIMARY KEY,
     TenLoai VARCHAR(100) NOT NULL,
@@ -75,21 +73,16 @@ CREATE TABLE SuDungDichVu (
 CREATE TABLE HoaDon (
     MaHoaDon VARCHAR(10) PRIMARY KEY,
     MaSDDV VARCHAR(10),
+    MaNhanVien VARCHAR(10) NOT NULL,
     NgayLapHoaDon DATE NOT NULL,
     TongTien DECIMAL(15, 2) NOT NULL DEFAULT 0 CHECK (TongTien >= 0),
     CONSTRAINT fk_hoadon_sddv FOREIGN KEY (MaSDDV)
-        REFERENCES SuDungDichVu(MaSDDV) ON UPDATE CASCADE ON DELETE SET NULL
+        REFERENCES SuDungDichVu(MaSDDV) ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT fk_hoadon_nhanvien FOREIGN KEY (MaNhanVien)
+        REFERENCES NhanVien(MaNhanVien) ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
-
 ALTER TABLE LoaiPhong ADD COLUMN MoTa VARCHAR(500) NULL;
-
-
-
-
-
-
-
 
 DELIMITER $$
 
@@ -172,7 +165,6 @@ BEGIN
     ORDER BY tp.NgayNhan ASC;
 END$$
 
-
 -- 4. STORED PROCEDURE: Thống kê doanh thu theo Ngày, Tuần, Tháng, Quý, Năm
 
 DROP PROCEDURE IF EXISTS sp_ThongKeDoanhThu$$
@@ -213,7 +205,7 @@ BEGIN
             YEAR(NgayLapHoaDon),
             WEEK(NgayLapHoaDon, 1)
         ORDER BY TuanThu ASC;
- 
+
     ELSEIF UPPER(p_KieuThongKe) = 'THANG' THEN
 
         SELECT
@@ -406,18 +398,32 @@ INSERT INTO SuDungDichVu (MaSDDV, MaThue, MaDichVu, SoLuong, NgaySuDung) VALUES
 ('SD04', 'TP03', 'DV04', 1, '2026-11-12'),
 ('SD05', 'TP04', 'DV05', 2, '2026-11-14');
 
-INSERT INTO HoaDon (MaHoaDon, MaSDDV, NgayLapHoaDon, TongTien) VALUES
-('HD01', 'SD01', '2026-10-05', 1500000),
-('HD02', 'SD03', '2026-11-06', 3000000),
-('HD03', 'SD04', '2026-11-15', 3150000),
-('HD04', 'SD05', '2026-11-18', 8000000);
+INSERT INTO HoaDon (MaHoaDon, MaSDDV, MaNhanVien, NgayLapHoaDon, TongTien) VALUES
+('HD01', 'SD01', 'NV01', '2026-10-05', 1500000),
+('HD02', 'SD03', 'NV01', '2026-11-06', 3000000),
+('HD03', 'SD04', 'NV02', '2026-11-15', 3150000),
+('HD04', 'SD05', 'NV02', '2026-11-18', 8000000);
 
+-- Gán mặc định NV01 nếu có hóa đơn cũ chưa có người lập trước khi bật trigger
+UPDATE HoaDon SET MaNhanVien = 'NV01' WHERE MaNhanVien IS NULL;
 
+-- Trigger: không cho thêm dịch vụ vào phiếu thuê đã có hóa đơn
+DROP TRIGGER IF EXISTS trg_ChanThemSDDVKhiDaCoHoaDon;
 
-
-
-
-
+DELIMITER $$
+CREATE TRIGGER trg_ChanThemSDDVKhiDaCoHoaDon
+BEFORE INSERT ON SuDungDichVu
+FOR EACH ROW
+BEGIN
+    IF EXISTS (SELECT 1
+                 FROM HoaDon hd
+                 JOIN SuDungDichVu sd ON sd.MaSDDV = hd.MaSDDV
+                WHERE sd.MaThue = NEW.MaThue) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Phieu thue da co hoa don, khong the them dich vu';
+    END IF;
+END$$
+DELIMITER ;
 
 -- Kiểm tra Trigger: Xem phòng P201, P301, P401 đã tự động đổi sang 'Đang sử dụng' chưa
 SELECT * FROM Phong;
