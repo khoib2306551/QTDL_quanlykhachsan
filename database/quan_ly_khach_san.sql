@@ -153,7 +153,7 @@ BEGIN
         tp.MaThue,
         kh.MaKhachHang,
         kh.TenKhachHang,
-        kh.SoDienThoai,
+        kh.SoDienThoa,
         p.MaPhong,
         p.SoPhong,
         lp.TenLoai,
@@ -276,9 +276,86 @@ END$$
 
 DELIMITER ;
 
+-- TimKiemPhong
 
+DELIMITER //
 
+DROP PROCEDURE IF EXISTS sp_TimKiemPhong //
 
+CREATE PROCEDURE sp_TimKiemPhong(
+    IN p_Keyword VARCHAR(50),
+    IN p_MaLoai VARCHAR(10),
+    IN p_TrangThai VARCHAR(50),
+    IN p_GiaTu DECIMAL(18, 2),
+    IN p_GiaDen DECIMAL(18, 2),
+    IN p_Page INT,
+    IN p_Size INT
+)
+BEGIN
+    DECLARE v_Offset INT;
+    SET v_Offset = (IFNULL(p_Page, 1) - 1) * IFNULL(p_Size, 10);
+
+    SELECT 
+        p.MaPhong AS maPhong,
+        p.SoPhong AS soPhong,
+        lp.TenLoai AS tenLoai,
+        lp.GiaPhong AS giaPhong,
+        p.TrangThai AS trangThai,
+        COUNT(*) OVER() AS totalElements
+    FROM Phong p
+    INNER JOIN LoaiPhong lp ON p.MaLoai = lp.MaLoai
+    WHERE (p_Keyword IS NULL OR p_Keyword = '' OR p.SoPhong LIKE CONCAT('%', p_Keyword, '%'))
+      AND (p_MaLoai IS NULL OR p_MaLoai = '' OR p.MaLoai = p_MaLoai)
+      AND (p_TrangThai IS NULL OR p_TrangThai = '' OR p.TrangThai = p_TrangThai)
+      AND (p_GiaTu IS NULL OR lp.GiaPhong >= p_GiaTu)
+      AND (p_GiaDen IS NULL OR lp.GiaPhong <= p_GiaDen)
+    ORDER BY p.SoPhong ASC
+    LIMIT p_Size OFFSET v_Offset;
+END //
+
+DELIMITER ;
+----- LocLoaiPhong 
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS sp_LocLoaiPhong //
+
+CREATE PROCEDURE sp_LocLoaiPhong(
+    IN p_Keyword VARCHAR(100),
+    IN p_GiaTu DECIMAL(18, 2),
+    IN p_GiaDen DECIMAL(18, 2),
+    IN p_ChiConPhongTrong BOOLEAN,
+    IN p_Page INT,
+    IN p_Size INT
+)
+BEGIN
+    DECLARE v_Offset INT;
+    SET v_Offset = (IFNULL(p_Page, 1) - 1) * IFNULL(p_Size, 10);
+
+    SELECT 
+        lp.MaLoai AS maLoai,
+        lp.TenLoai AS tenLoai,
+        lp.GiaPhong AS giaPhong,
+        lp.MoTa AS moTa,
+        COUNT(p.MaPhong) AS tongSoPhong,
+        COALESCE(SUM(CASE WHEN p.TrangThai = _utf8mb4 0x5472E1BB916E67 THEN 1 ELSE 0 END), 0) AS soPhongTrong,
+        COUNT(*) OVER() AS totalElements
+    FROM LoaiPhong lp
+    LEFT JOIN Phong p ON lp.MaLoai = p.MaLoai
+    WHERE (p_Keyword IS NULL OR p_Keyword = '' 
+           OR lp.TenLoai LIKE CONCAT('%', p_Keyword, '%') 
+           OR lp.MoTa LIKE CONCAT('%', p_Keyword, '%'))
+      AND (p_GiaTu IS NULL OR lp.GiaPhong >= p_GiaTu)
+      AND (p_GiaDen IS NULL OR lp.GiaPhong <= p_GiaDen)
+    GROUP BY lp.MaLoai, lp.TenLoai, lp.GiaPhong, lp.MoTa
+    HAVING (p_ChiConPhongTrong IS NULL 
+            OR p_ChiConPhongTrong = FALSE 
+            OR COALESCE(SUM(CASE WHEN p.TrangThai = _utf8mb4 0x5472E1BB916E67 THEN 1 ELSE 0 END), 0) > 0)
+    ORDER BY lp.MaLoai ASC
+    LIMIT p_Size OFFSET v_Offset;
+END //
+
+DELIMITER ;
+------------
 
 
 
