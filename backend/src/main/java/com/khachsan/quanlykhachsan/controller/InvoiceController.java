@@ -5,9 +5,12 @@ import com.khachsan.quanlykhachsan.dto.response.ApiResponse;
 import com.khachsan.quanlykhachsan.dto.response.TongTienResponse;
 import com.khachsan.quanlykhachsan.dto.response.hoadon.HoaDonListResponse;
 import com.khachsan.quanlykhachsan.service.InvoiceService;
+import com.khachsan.quanlykhachsan.dto.response.sddv.SuDungDichVuListResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/hoa-don")
@@ -32,5 +35,17 @@ public class InvoiceController {
     @GetMapping("/tinh-tong-tien/{maThue}")
     public TongTienResponse tinhTongTien(@PathVariable String maThue) {
         return service.tinhTongTien(maThue);
+    }
+
+    @GetMapping("/dich-vu/{maThue}")
+    public ResponseEntity<ApiResponse<List<SuDungDichVuListResponse>>> layDichVu(@PathVariable String maThue) {
+        return ResponseEntity.ok(ApiResponse.success("success", service.layDichVuTheoThue(maThue)));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<HoaDonListResponse>> them(
+            @RequestBody InvoiceService.HoaDonRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("success", service.them(req)));
     }
 }

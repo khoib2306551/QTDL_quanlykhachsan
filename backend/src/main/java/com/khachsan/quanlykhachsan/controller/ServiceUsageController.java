@@ -7,6 +7,7 @@ import com.khachsan.quanlykhachsan.service.ServiceUsageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/su-dung-dich-vu")
@@ -26,5 +27,19 @@ public class ServiceUsageController {
     public ResponseEntity<ApiResponse<Void>> xoa(@PathVariable String maSddv) {
         service.xoa(maSddv);
         return ResponseEntity.ok(ApiResponse.success("success"));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<SuDungDichVuListResponse>> them(
+            @RequestBody ServiceUsageService.SddvRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("success", service.them(req)));
+    }
+
+    @PutMapping("/{maSddv}")
+    public ResponseEntity<ApiResponse<SuDungDichVuListResponse>> sua(
+            @PathVariable String maSddv,
+            @RequestBody ServiceUsageService.SddvRequest req) {
+        return ResponseEntity.ok(ApiResponse.success("success", service.sua(maSddv, req)));
     }
 }

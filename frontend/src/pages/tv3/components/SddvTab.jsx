@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, RotateCcw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { tv3Api } from '../../../services/api';
+import { Search, RotateCcw, Trash2, ChevronLeft, ChevronRight, Plus, Pencil, Save, X } from 'lucide-react';
+import { tv3Api, tv2Api } from '../../../services/api';
 import ConfirmDeleteModal from '../../tv1/components/ConfirmDeleteModal';
 
 const PAGE_SIZE = 10;
 
 const formatDate = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 const formatMoney = (n) => `${Number(n ?? 0).toLocaleString('vi-VN')} đ`;
+const EMPTY_FORM = { maThue: '', maDichVu: '', soLuong: 1, ngaySuDung: '' };
 
 export default function SddvTab({ onError }) {
   const [list, setList] = useState([]);
@@ -19,6 +20,10 @@ export default function SddvTab({ onError }) {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState({ type: '', text: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editing, setEditing] = useState(null);
+  const [thueList, setThueList] = useState([]);
+  const [dichVuList, setDichVuList] = useState([]);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -39,6 +44,18 @@ export default function SddvTab({ onError }) {
     fetchList();
   }, [fetchList]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const [t, d] = await Promise.all([tv2Api.layDSThuePhong(), tv2Api.layDSDichVu()]);
+        setThueList(t.data || []);
+        setDichVuList(d.data || []);
+      } catch (err) {
+        onError(err, 'Không thể tải danh sách phiếu thuê / dịch vụ.', setNotice);
+      }
+    })();
+  }, [onError]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     setNotice({ type: '', text: '' });
@@ -53,6 +70,44 @@ export default function SddvTab({ onError }) {
     setCurrentPage(1);
   };
 
+  const handleCancelEdit = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+  };
+
+  const handleEdit = (item) => {
+    setNotice({ type: '', text: '' });
+    setEditing(item.maSddv);
+    setForm({
+      maThue: item.maThue,
+      maDichVu: item.maDichVu,
+      soLuong: item.soLuong,
+      ngaySuDung: item.ngaySuDung,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setNotice({ type: '', text: '' });
+    setSubmitting(true);
+    try {
+      const payload = { ...form, soLuong: Number(form.soLuong) };
+      if (editing) {
+        await tv3Api.suaSDDV(editing, payload);
+        setNotice({ type: 'success', text: `Đã cập nhật lượt sử dụng dịch vụ ${editing}.` });
+      } else {
+        await tv3Api.themSDDV(payload);
+        setNotice({ type: 'success', text: 'Đã thêm lượt sử dụng dịch vụ.' });
+      }
+      handleCancelEdit();
+      fetchList();
+    } catch (err) {
+      onError(err, editing ? 'Cập nhật thất bại.' : 'Thêm thất bại.', setNotice);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const ma = deleteTarget.maSddv;
@@ -60,6 +115,7 @@ export default function SddvTab({ onError }) {
     setNotice({ type: '', text: '' });
     try {
       await tv3Api.xoaSDDV(ma);
+      if (editing === ma) handleCancelEdit();
       setDeleteTarget(null);
       setNotice({ type: 'success', text: `Đã xóa lượt sử dụng dịch vụ ${ma}.` });
       if (list.length === 1 && currentPage > 1) {
@@ -77,6 +133,79 @@ export default function SddvTab({ onError }) {
 
   return (
     <div>
+      <div className="card-box">
+        <div className="card-title">
+          {editing ? `Sửa lượt sử dụng dịch vụ ${editing}` : 'Thêm sử dụng dịch vụ'}
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-row">
+            <label>Phiếu thuê:</label>
+            <select
+              value={form.maThue}
+              disabled={Boolean(editing)}
+              onChange={(e) => setForm({ ...form, maThue: e.target.value })}
+            >
+              <option value="">-- Chọn phiếu thuê --</option>
+              {thueList.map((t) => (
+                <option key={t.maThue} value={t.maThue}>
+                  {t.maThue} — {t.tenKhachHang} (phòng {t.soPhong})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Dịch vụ:</label>
+            <select
+              value={form.maDichVu}
+              onChange={(e) => setForm({ ...form, maDichVu: e.target.value })}
+            >
+              <option value="">-- Chọn dịch vụ --</option>
+              {dichVuList.map((d) => (
+                <option key={d.maDichVu} value={d.maDichVu}>
+                  {d.tenDichVu} — {formatMoney(d.giaDichVu)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Số lượng:</label>
+            <input
+              type="number"
+              min="1"
+              value={form.soLuong}
+              onChange={(e) => setForm({ ...form, soLuong: e.target.value })}
+            />
+          </div>
+
+          <div className="form-row">
+            <label>Ngày sử dụng:</label>
+            <input
+              type="date"
+              value={form.ngaySuDung}
+              onChange={(e) => setForm({ ...form, ngaySuDung: e.target.value })}
+            />
+          </div>
+
+          <div className="btn-group">
+            <button type="submit" className="btn inline-flex items-center gap-1.5" disabled={submitting}>
+              {editing ? <><Save size={15} /> Lưu</> : <><Plus size={15} /> Thêm</>}
+            </button>
+            {editing && (
+              <button
+                type="button"
+                className="btn btn-secondary inline-flex items-center gap-1.5"
+                onClick={handleCancelEdit}
+              >
+                <X size={15} /> Hủy
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
       <div className="card-box">
         <div className="card-title">Tìm kiếm sử dụng dịch vụ</div>
 
@@ -133,7 +262,7 @@ export default function SddvTab({ onError }) {
                 <th>Đơn giá</th>
                 <th>Thành tiền</th>
                 <th>Ngày sử dụng</th>
-                <th className="w-[110px]">Thao tác</th>
+                <th className="w-[200px]">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -161,6 +290,13 @@ export default function SddvTab({ onError }) {
                     <td>{formatMoney(item.thanhTien)}</td>
                     <td>{formatDate(item.ngaySuDung)}</td>
                     <td>
+                      <button
+                        type="button"
+                        className="btn inline-flex items-center gap-1 mr-1.5"
+                        onClick={() => handleEdit(item)}
+                      >
+                        <Pencil size={14} /> Sửa
+                      </button>
                       <button
                         type="button"
                         className="btn btn-danger inline-flex items-center gap-1"

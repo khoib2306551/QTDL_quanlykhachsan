@@ -83,12 +83,16 @@ export const tv3Api = {
   layDSHoaDon: (maHoaDon = '', size = 10, page = 1) =>
     apiClient.get('/hoa-don', { params: { maHoaDon, size, page } }),
   xoaHoaDon: (maHoaDon) => apiClient.delete(`/hoa-don/${maHoaDon}`),
+  themHoaDon: (data) => apiClient.post('/hoa-don', data),
+  layDichVuTheoThue: (maThue) => apiClient.get(`/hoa-don/dich-vu/${maThue}`),
   tinhTongTien: (maThue) => apiClient.get(`/hoa-don/tinh-tong-tien/${maThue}`),
 
   // Sử dụng dịch vụ
   layDSSDDV: (maSddv = '', size = 10, page = 1) =>
     apiClient.get('/su-dung-dich-vu', { params: { maSddv, size, page } }),
   xoaSDDV: (maSDDV) => apiClient.delete(`/su-dung-dich-vu/${maSDDV}`),
+  themSDDV: (data) => apiClient.post('/su-dung-dich-vu', data),
+  suaSDDV: (maSddv, data) => apiClient.put(`/su-dung-dich-vu/${maSddv}`, data),
 };
 
 

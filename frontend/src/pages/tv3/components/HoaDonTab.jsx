@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, RotateCcw, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { tv3Api } from '../../../services/api';
+import { Search, RotateCcw, Trash2, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { tv3Api, tv2Api } from '../../../services/api';
 import ConfirmDeleteModal from '../../tv1/components/ConfirmDeleteModal';
 
 const PAGE_SIZE = 10;
 
 const formatDate = (iso) => (iso ? iso.split('-').reverse().join('/') : '');
 const formatMoney = (n) => `${Number(n ?? 0).toLocaleString('vi-VN')} đ`;
+const homNay = () => {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+};
 
 export default function HoaDonTab({ onError }) {
   const [list, setList] = useState([]);
@@ -19,6 +24,12 @@ export default function HoaDonTab({ onError }) {
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState({ type: '', text: '' });
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [details, setDetails] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [form, setForm] = useState({ maThue: '', ngayLapHoaDon: homNay() });
+  const [thueList, setThueList] = useState([]);
+  const [preview, setPreview] = useState(null);
 
   const fetchList = useCallback(async () => {
     setLoading(true);
@@ -39,6 +50,17 @@ export default function HoaDonTab({ onError }) {
     fetchList();
   }, [fetchList]);
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await tv2Api.layDSThuePhong();
+        setThueList(res.data || []);
+      } catch (err) {
+        onError(err, 'Không thể tải danh sách phiếu thuê.', setNotice);
+      }
+    })();
+  }, [onError]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     setNotice({ type: '', text: '' });
@@ -53,6 +75,55 @@ export default function HoaDonTab({ onError }) {
     setCurrentPage(1);
   };
 
+  const handleSelect = async (item) => {
+    setSelected(item);
+    setDetails([]);
+    if (!item.maThue) return;
+    setDetailLoading(true);
+    try {
+      const res = await tv3Api.layDichVuTheoThue(item.maThue);
+      setDetails(res.data?.data ?? res.data ?? []);
+    } catch (err) {
+      onError(err, 'Không thể tải chi tiết dịch vụ.', setNotice);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const handleChonThue = async (maThue) => {
+    const tp = thueList.find((t) => t.maThue === maThue);
+    setForm((f) => ({ ...f, maThue, ngayLapHoaDon: tp?.ngayTra ?? homNay() }));
+    setPreview(null);
+    if (!maThue) return;
+    try {
+      const res = await tv3Api.tinhTongTien(maThue);
+      setPreview(res.data);
+    } catch (err) {
+      onError(err, 'Không thể tính tạm tổng tiền.', setNotice);
+    }
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setNotice({ type: '', text: '' });
+    setSubmitting(true);
+    try {
+      await tv3Api.themHoaDon(form);
+      setNotice({ type: 'success', text: `Đã lập hóa đơn cho phiếu thuê ${form.maThue}.` });
+      setForm({ maThue: '', ngayLapHoaDon: homNay() });
+      setPreview(null);
+      if (currentPage !== 1) {
+        setCurrentPage(1);
+      } else {
+        fetchList();
+      }
+    } catch (err) {
+      onError(err, 'Lập hóa đơn thất bại.', setNotice);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const ma = deleteTarget.maHoaDon;
@@ -61,6 +132,7 @@ export default function HoaDonTab({ onError }) {
     try {
       await tv3Api.xoaHoaDon(ma);
       setDeleteTarget(null);
+      if (selected?.maHoaDon === ma) setSelected(null);
       setNotice({ type: 'success', text: `Đã xóa hóa đơn ${ma}.` });
       if (list.length === 1 && currentPage > 1) {
         setCurrentPage(currentPage - 1);
@@ -75,8 +147,59 @@ export default function HoaDonTab({ onError }) {
     }
   };
 
+  const ngayTraChon = thueList.find((t) => t.maThue === form.maThue)?.ngayTra;
+
   return (
     <div>
+      <div className="card-box">
+        <div className="card-title">Lập hóa đơn</div>
+
+        <form onSubmit={handleCreate}>
+          <div className="form-row">
+            <label>Phiếu thuê:</label>
+            <select value={form.maThue} onChange={(e) => handleChonThue(e.target.value)}>
+              <option value="">-- Chọn phiếu thuê --</option>
+              {thueList.map((t) => (
+                <option key={t.maThue} value={t.maThue}>
+                  {t.maThue} — {t.tenKhachHang} (phòng {t.soPhong})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-row">
+            <label>Ngày lập (= ngày trả):</label>
+            <input
+              type="date"
+              value={form.ngayLapHoaDon}
+              min={ngayTraChon}
+              max={ngayTraChon}
+              onChange={(e) => setForm({ ...form, ngayLapHoaDon: e.target.value })}
+            />
+          </div>
+
+          {preview && (
+            <div className="form-row">
+              <label>Tạm tính:</label>
+              <div className="text-[13px]">
+                Tiền phòng <strong>{formatMoney(preview.tienPhong)}</strong> + Dịch vụ{' '}
+                <strong>{formatMoney(preview.tienDichVu)}</strong> ={' '}
+                <strong>{formatMoney(preview.tongTien)}</strong>
+              </div>
+            </div>
+          )}
+
+          <div className="btn-group">
+            <button
+              type="submit"
+              className="btn inline-flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={submitting || !form.maThue}
+            >
+              <Plus size={15} /> Lập hóa đơn
+            </button>
+          </div>
+        </form>
+      </div>
       <div className="card-box">
         <div className="card-title">Tìm kiếm hóa đơn</div>
 
@@ -125,40 +248,57 @@ export default function HoaDonTab({ onError }) {
           <table className="data-table">
             <thead>
               <tr>
-                <th className="w-[160px]">Mã hóa đơn</th>
-                <th className="w-[160px]">Mã SDDV</th>
-                <th className="w-[160px]">Ngày lập</th>
-                <th className="w-[200px]">Tiền phòng</th>
+                <th>Mã hóa đơn</th>
+                <th>Mã thuê</th>
+                <th>Khách hàng</th>
+                <th>Phòng</th>
+                <th>Số ngày</th>
+                <th>Tiền phòng</th>
+                <th>Tiền dịch vụ</th>
                 <th>Tổng tiền</th>
+                <th>Ngày lập</th>
                 <th className="w-[110px]">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-4 text-center">
+                  <td colSpan={10} className="py-4 text-center">
                     Đang tải dữ liệu...
                   </td>
                 </tr>
               ) : list.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-4 text-center text-slate-500">
+                  <td colSpan={10} className="py-4 text-center text-slate-500">
                     Không có hóa đơn nào.
                   </td>
                 </tr>
               ) : (
                 list.map((item) => (
-                  <tr key={item.maHoaDon}>
+                  <tr
+                    key={item.maHoaDon}
+                    onClick={() => handleSelect(item)}
+                    className={`cursor-pointer ${
+                      selected?.maHoaDon === item.maHoaDon ? 'bg-amber-50' : 'hover:bg-slate-50'
+                    }`}
+                  >
                     <td>{item.maHoaDon}</td>
-                    <td>{item.maSddv}</td>
-                    <td>{formatDate(item.ngayLapHoaDon)}</td>
+                    <td>{item.maThue ?? '—'}</td>
+                    <td>{item.tenKhachHang ?? '—'}</td>
+                    <td>{item.soPhong ?? '—'}</td>
+                    <td>{item.soNgay ?? '—'}</td>
                     <td>{item.tienPhong == null ? '—' : formatMoney(item.tienPhong)}</td>
-                    <td>{formatMoney(item.tongTien)}</td>
+                    <td>{item.tienDichVu == null ? '—' : formatMoney(item.tienDichVu)}</td>
+                    <td className="font-bold">{formatMoney(item.tongTien)}</td>
+                    <td>{formatDate(item.ngayLapHoaDon)}</td>
                     <td>
                       <button
                         type="button"
                         className="btn btn-danger inline-flex items-center gap-1"
-                        onClick={() => setDeleteTarget(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(item);
+                        }}
                       >
                         <Trash2 size={14} /> Xóa
                       </button>
@@ -196,6 +336,61 @@ export default function HoaDonTab({ onError }) {
           </div>
         </div>
       </div>
+
+      {selected && (
+        <div className="card-box">
+          <div className="card-title">
+            Chi tiết dịch vụ — hóa đơn {selected.maHoaDon} (phiếu thuê {selected.maThue ?? '—'})
+          </div>
+
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Mã SDDV</th>
+                  <th>Dịch vụ</th>
+                  <th>Đơn giá</th>
+                  <th>Số lượng</th>
+                  <th>Ngày dùng</th>
+                  <th>Thành tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detailLoading ? (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center">Đang tải dữ liệu...</td>
+                  </tr>
+                ) : details.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center text-slate-500">
+                      {selected.maThue
+                        ? 'Phiếu thuê này chưa sử dụng dịch vụ nào.'
+                        : 'Hóa đơn này không còn liên kết với phiếu thuê.'}
+                    </td>
+                  </tr>
+                ) : (
+                  details.map((d) => (
+                    <tr key={d.maSddv}>
+                      <td>{d.maSddv}</td>
+                      <td>{d.tenDichVu}</td>
+                      <td>{formatMoney(d.donGia)}</td>
+                      <td>{d.soLuong}</td>
+                      <td>{formatDate(d.ngaySuDung)}</td>
+                      <td>{formatMoney(d.thanhTien)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-3 text-right text-[13px]">
+            Tiền phòng <strong>{formatMoney(selected.tienPhong)}</strong> + Dịch vụ{' '}
+            <strong>{formatMoney(selected.tienDichVu)}</strong> ={' '}
+            <strong>{formatMoney(selected.tongTien)}</strong>
+          </div>
+        </div>
+      )}
 
       <ConfirmDeleteModal
         isOpen={Boolean(deleteTarget)}

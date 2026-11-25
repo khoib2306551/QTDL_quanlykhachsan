@@ -10,6 +10,30 @@ import java.math.BigDecimal;
 
 public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
 
+    interface ChiPhiThue {
+        Integer getSoNgay();
+        BigDecimal getGiaPhong();
+        BigDecimal getTienDichVu();
+    }
+
+    @Query(value = """
+        SELECT fn_TinhSoNgayLuuTru(tp.NgayNhan, tp.NgayTra) AS soNgay,
+               lp.GiaPhong AS giaPhong,
+               (SELECT IFNULL(SUM(s.SoLuong * dv.GiaDichVu), 0)
+                  FROM SuDungDichVu s
+                  JOIN DichVu dv ON dv.MaDichVu = s.MaDichVu
+                 WHERE s.MaThue = tp.MaThue) AS tienDichVu
+        FROM ThuePhong tp
+        JOIN Phong p ON p.MaPhong = tp.MaPhong
+        JOIN LoaiPhong lp ON lp.MaLoai = p.MaLoai
+        WHERE tp.MaThue = :maThue
+        """, nativeQuery = true)
+    ChiPhiThue layChiPhiThue(@Param("maThue") String maThue);
+
+    @Query(value = "SELECT MAX(CAST(SUBSTRING(MaHoaDon, 3) AS UNSIGNED)) " +
+            "FROM HoaDon WHERE MaHoaDon REGEXP '^HD[0-9]+$'", nativeQuery = true)
+    Long layMaSoLonNhat();
+
     Page<HoaDon> findByMaHoaDonContainingIgnoreCase(String maHoaDon, Pageable pageable);
 
     @Query(value = """
