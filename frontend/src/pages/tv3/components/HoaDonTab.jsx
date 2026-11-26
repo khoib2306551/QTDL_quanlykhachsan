@@ -17,6 +17,10 @@ export default function HoaDonTab({ onError }) {
   const [list, setList] = useState([]);
   const [keyword, setKeyword] = useState('');
   const [search, setSearch] = useState('');
+  const [tuNgay, setTuNgay] = useState('');
+  const [denNgay, setDenNgay] = useState('');
+  const [sapXep, setSapXep] = useState('desc');
+  const [loc, setLoc] = useState({ tuNgay: '', denNgay: '', sapXep: 'desc' });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
@@ -34,7 +38,7 @@ export default function HoaDonTab({ onError }) {
   const fetchList = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await tv3Api.layDSHoaDon(search, PAGE_SIZE, currentPage);
+      const res = await tv3Api.layDSHoaDon(search, PAGE_SIZE, currentPage, loc.tuNgay, loc.denNgay, loc.sapXep);
       const raw = res.data?.data ?? res.data;
       setList(raw?.content || []);
       setTotalPages(Math.max(raw?.totalPages || 1, 1));
@@ -44,7 +48,14 @@ export default function HoaDonTab({ onError }) {
     } finally {
       setLoading(false);
     }
-  }, [onError, search, currentPage]);
+  }, [onError, search, loc, currentPage]);
+
+  useEffect(() => {
+    if (selected && !list.some((h) => h.maHoaDon === selected.maHoaDon)) {
+      setSelected(null);
+      setDetails([]);
+    }
+  }, [list, selected]);
 
   useEffect(() => {
     fetchList();
@@ -63,15 +74,28 @@ export default function HoaDonTab({ onError }) {
 
   const handleSearch = (e) => {
     e.preventDefault();
+    if (tuNgay && denNgay && tuNgay > denNgay) {
+      setNotice({ type: 'error', text: 'Từ ngày không được sau đến ngày.' });
+      return;
+    }
+    setSelected(null);
+    setDetails([]);
     setNotice({ type: '', text: '' });
     setCurrentPage(1);
     setSearch(keyword.trim());
+    setLoc({ tuNgay, denNgay, sapXep });
   };
 
   const handleReset = () => {
     setNotice({ type: '', text: '' });
+    setSelected(null);
+    setDetails([]);
     setKeyword('');
     setSearch('');
+    setTuNgay('');
+    setDenNgay('');
+    setSapXep('desc');
+    setLoc({ tuNgay: '', denNgay: '', sapXep: 'desc' });
     setCurrentPage(1);
   };
 
@@ -221,9 +245,41 @@ export default function HoaDonTab({ onError }) {
             <input
               type="text"
               value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              onChange={(e) => {
+                setKeyword(e.target.value);
+                if (e.target.value) {
+                  setTuNgay('');
+                  setDenNgay('');
+                }
+              }}
               placeholder="VD: HD01"
             />
+          </div>
+
+          <div className="form-row">
+            <label>Từ ngày:</label>
+            <input type="date" value={tuNgay} max={denNgay || undefined}
+                  onChange={(e) => {
+                    setTuNgay(e.target.value);
+                    if (e.target.value) setKeyword('');
+                  }} />
+          </div>
+
+          <div className="form-row">
+            <label>Đến ngày:</label>
+            <input type="date" value={denNgay} min={tuNgay || undefined}
+                  onChange={(e) => {
+                    setDenNgay(e.target.value);
+                    if (e.target.value) setKeyword('');
+                  }} />
+          </div>
+
+          <div className="form-row">
+            <label>Sắp xếp:</label>
+            <select value={sapXep} onChange={(e) => setSapXep(e.target.value)}>
+              <option value="desc">Ngày lập giảm dần (mới nhất trước)</option>
+              <option value="asc">Ngày lập tăng dần (cũ nhất trước)</option>
+            </select>
           </div>
 
           <div className="btn-group">
