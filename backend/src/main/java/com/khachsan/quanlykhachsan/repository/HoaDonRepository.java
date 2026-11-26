@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
 
@@ -60,4 +61,13 @@ public interface HoaDonRepository extends JpaRepository<HoaDon, String> {
         WHERE sd.MaThue = :maThue
         """, nativeQuery = true)
     long demHoaDonCuaPhieuThue(@Param("maThue") String maThue);
+
+    @Query("""
+        SELECT h FROM HoaDon h
+        WHERE LOWER(h.maHoaDon) LIKE LOWER(CONCAT('%', :ma, '%'))
+        AND (:tu IS NULL OR h.ngayLapHoaDon >= :tu)
+        AND (:den IS NULL OR h.ngayLapHoaDon <= :den)
+        """)
+    Page<HoaDon> loc(@Param("ma") String ma, @Param("tu") LocalDate tu,
+                    @Param("den") LocalDate den, Pageable pageable);
 }

@@ -35,12 +35,14 @@ public class InvoiceService {
     public record HoaDonRequest(String maThue, LocalDate ngayLapHoaDon) {
     }
 
-    public PageResponse<HoaDonListResponse> timKiem(String maHoaDon, int page, int size) {
+    public PageResponse<HoaDonListResponse> timKiem(String maHoaDon, LocalDate tu, LocalDate den,
+                                                    String sapXep, int page, int size) {
+        if (tu != null && den != null && tu.isAfter(den))
+            throw new BusinessException("Từ ngày không được sau đến ngày");
+        Sort.Direction dir = "asc".equalsIgnoreCase(sapXep) ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(Math.max(page - 1, 0), size,
-                Sort.by(Sort.Order.desc("ngayLapHoaDon"), Sort.Order.asc("maHoaDon")));
-        return PageResponse.from(
-                repo.findByMaHoaDonContainingIgnoreCase(maHoaDon.trim(), pageable)
-                        .map(this::toListResponse));
+                Sort.by(dir, "ngayLapHoaDon").and(Sort.by("maHoaDon")));
+        return PageResponse.from(repo.loc(maHoaDon.trim(), tu, den, pageable).map(this::toListResponse));
     }
 
     private HoaDonListResponse toListResponse(HoaDon hd) {

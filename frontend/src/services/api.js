@@ -96,8 +96,9 @@ export const tv2Api = {
 // SỬ DỤNG DỊCH VỤ & HÓA ĐƠN
 export const tv3Api = {
   // Hóa đơn
-  layDSHoaDon: (maHoaDon = '', size = 10, page = 1) =>
-    apiClient.get('/hoa-don', { params: { maHoaDon, size, page } }),
+  layDSHoaDon: (maHoaDon = '', size = 10, page = 1, tuNgay = '', denNgay = '', sapXep = 'desc') =>
+  apiClient.get('/hoa-don', { params: { maHoaDon, size, page,
+    tuNgay: tuNgay || undefined, denNgay: denNgay || undefined, sapXep } }),
   xoaHoaDon: (maHoaDon) => apiClient.delete(`/hoa-don/${maHoaDon}`),
   themHoaDon: (data) => apiClient.post('/hoa-don', data),
   layDichVuTheoThue: (maThue) => apiClient.get(`/hoa-don/dich-vu/${maThue}`),
